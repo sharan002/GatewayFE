@@ -16,7 +16,24 @@ interface FilterPanelProps {
   branches?: string[]; // branch names; the Branch filter is only shown when provided (admin)
 }
 
-export const COURSES = ["Python Fullstack with AI", "Java Fullstack with AI", "MERN Stack with AI", "Data Science", "Data Analytics", "Digital Marketing" , "College Internship" ,"Bot Kovai", "React JS" ,"SEO" , "Meta ads" , "Gen AI" ,  "AI Foundations","IT Recruitment with AI","US IT Recruitment with AI","Devops","AWS","UIUX","Cybersecurity"];
+export const COURSES = [
+  "GEN AI",
+  "Prompt Engineering",
+  "AIoT",
+  "Embedded Systems & IoT",
+  "Mobile App Development",
+  "Cyber Security",
+  "SOC Analyst",
+  "Python Full Stack",
+  "Java Full Stack & AEM Full Stack",
+  ".NET Full Stack",
+  "Angular and React Full Stack",
+  "MERN Stack Development",
+  "Data Analytics",
+  "Data Science & AI",
+  "Digital Marketing",
+  "Software Testing"
+];
 const PROGRAM_TYPES = ["8 Hours", "2 Hours"];
 const PROFESSIONS = ["Job Seeker", "Student", "Working Professional"];
 const SOURCES = ["WhatsApp", "Meta Ads",'Google ads', "Website","Call","Walk-in","Referral","metaads","BulkMessage"];
