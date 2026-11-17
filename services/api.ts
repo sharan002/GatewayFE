@@ -3,7 +3,7 @@ import { Lead, DashboardResponse, CombinedCertificateResult, LeadsQueryResponse,
 
 // https://ask4people.in/crmapi
 
-// const BASE_URL = 'http://localhost:4000'
+// const BASE_URL = 'http://localhost:8004'
 
 const BASE_URL = 'https://gateway.botkovai.in/crmgateway';
 

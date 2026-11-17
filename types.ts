@@ -83,6 +83,7 @@ export interface CertificateResult {
   _id?: string;
   success: boolean;
   fileName: string;
+  title?: string | null;
   message: string;
   s3?: {
     uploaded: boolean;

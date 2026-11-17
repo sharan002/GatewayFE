@@ -18,6 +18,8 @@ interface InternshipEnrolledViewProps {
 }
 
 const SALUTATIONS = ['Mr', 'Ms', 'Mrs', 'Dr', 'Prof'];
+const CLIENT_COMPANIES = ['Gateway Software Solutions', 'Genuine IT Solutions', 'Vision Corp Infotech'];
+const toTitleLabel = (s: string) => s.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
 // const YEARS_OF_STUDY = ['1st Year', '2nd Year', '3rd Year', 'Final Year'];
 
 const emptyForm = (): InternCertificateDetail => ({
@@ -1708,7 +1710,13 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                   {/* Company */}
                   <div className="space-y-1">
                     <label className={labelClass}>Company</label>
-                    <input type="text" value={formData.company || ''} onChange={e => handleFieldChange('company', e.target.value)} className={fieldClass} placeholder="Company name" />
+                    <select value={formData.company || ''} onChange={e => handleFieldChange('company', e.target.value)} className={fieldClass}>
+                      <option value="">Select company</option>
+                      {formData.company && !CLIENT_COMPANIES.includes(formData.company) && (
+                        <option value={formData.company}>{formData.company}</option>
+                      )}
+                      {CLIENT_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
 
                   <div className="space-y-2">
@@ -2246,7 +2254,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-700">Certificate {idx + 1}</p>
+                                <p className="text-sm font-bold text-slate-700">{cert.title ? toTitleLabel(cert.title) : `Certificate ${idx + 1}`}</p>
                                 <p className="text-[10px] text-slate-400 truncate">{cert.fileName}</p>
                               </div>
                             </div>
