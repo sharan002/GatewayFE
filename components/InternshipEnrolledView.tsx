@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Lead, User, InternCertificateDetail, CertificateResult, Installment } from '../types';
 import { apiService } from '../services/api';
-import { Icons } from './Icons';
 import { FilterState } from '../App';
 import MessageModal from './MessageModal';
 
@@ -18,9 +17,6 @@ interface InternshipEnrolledViewProps {
 }
 
 const SALUTATIONS = ['Mr', 'Ms', 'Mrs', 'Dr', 'Prof'];
-const CLIENT_COMPANIES = ['Gateway Software Solutions', 'Genuine IT Solutions', 'Vision Corp Infotech'];
-const toTitleLabel = (s: string) => s.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
-// const YEARS_OF_STUDY = ['1st Year', '2nd Year', '3rd Year', 'Final Year'];
 
 const emptyForm = (): InternCertificateDetail => ({
   salutation: '',
@@ -45,7 +41,61 @@ const emptyForm = (): InternCertificateDetail => ({
   batch_code: '',
 });
 
-/** Compute fees summary for a lead */
+// Inline SVG Icon components
+const MenuIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+);
+const UserIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+);
+const CheckIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>
+);
+const FilterIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707v4.172a1 1 0 01-1.447.894l-4-2A1 1 0 017 18v-3.586a1 1 0 00-.293-.707L.293 7.293A1 1 0 010 6.586V4z"/></svg>
+);
+const CrownIcon = ({ className = "w-3 h-3" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7M5 19h14"/></svg>
+);
+const WhatsAppIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+);
+const PlusIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
+);
+const RefreshIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+);
+const TrashIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+);
+const PrinterIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-16 0v5a2 2 0 002 2h12a2 2 0 002-2v-5m-14 4h12"/></svg>
+);
+const CopyIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+);
+const SendIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m22 2-7 20-4-9-9-4Z" />
+    <path d="M22 2 11 13" />
+  </svg>
+);
+const ChevronDownIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
+);
+const XIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+);
+const ManageIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" className={className}>
+    <path d="M18 23h-2v-2a3.003 3.003 0 0 0-3-3H9a3.003 3.003 0 0 0-3 3v2H4v-2a5.006 5.006 0 0 1 5-5h4a5.006 5.006 0 0 1 5 5ZM11 6a3 3 0 1 1-3 3a3 3 0 0 1 3-3m0-2a5 5 0 1 0 5 5a5 5 0 0 0-5-5M2 26h28v2H2zM22 4v2h4.586L20 12.586L21.414 14L28 7.414V12h2V4z" />
+  </svg>
+);
+const EditIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+);
+
 function getFeesSummary(lead: Lead) {
   const inst = lead.fees?.installments ?? [];
   if (inst.length === 0) return null;
@@ -57,24 +107,48 @@ function getFeesSummary(lead: Lead) {
   return { paidCount, totalCount, totalPaid, totalPending, allPaid };
 }
 
-/** Deterministic pastel color for a batch code string */
-function batchColor(code: string): { bg: string; border: string; text: string; dot: string } {
-  const palette = [
-    { bg: 'bg-violet-50', border: 'border-violet-200', text: 'text-violet-700', dot: 'bg-violet-400' },
-    { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', dot: 'bg-sky-400' },
-    { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-400' },
-    { bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-700', dot: 'bg-rose-400' },
-    { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700', dot: 'bg-teal-400' },
-    { bg: 'bg-fuchsia-50', border: 'border-fuchsia-200', text: 'text-fuchsia-700', dot: 'bg-fuchsia-400' },
-    { bg: 'bg-lime-50', border: 'border-lime-200', text: 'text-lime-700', dot: 'bg-lime-400' },
-    { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', dot: 'bg-orange-400' },
-  ];
-  let hash = 0;
-  for (let i = 0; i < code.length; i++) hash = (hash * 31 + code.charCodeAt(i)) & 0xffff;
-  return palette[hash % palette.length];
+function getAvatarColor(_name: string) {
+  return 'bg-teal-100 text-teal-700 font-bold';
 }
 
-const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, users, currentUserRole, onUpdateLead, onOpenFees, onDeleteLead, onEditLead, searchQuery: externalSearchQuery, onSearchQueryChange }) => {
+/** Deterministic low-opacity pastel color for batch codes */
+function getBatchColor(code: string): { bg: string; border: string; text: string; dot: string } {
+  if (!code) return { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', dot: 'bg-slate-400' };
+  const palette = [
+    { bg: 'bg-blue-50/90', border: 'border-blue-200/90', text: 'text-blue-700', dot: 'bg-blue-400' },
+    { bg: 'bg-purple-50/90', border: 'border-purple-200/90', text: 'text-purple-700', dot: 'bg-purple-400' },
+    { bg: 'bg-emerald-50/90', border: 'border-emerald-200/90', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+    { bg: 'bg-amber-50/90', border: 'border-amber-200/90', text: 'text-amber-700', dot: 'bg-amber-400' },
+    { bg: 'bg-rose-50/90', border: 'border-rose-200/90', text: 'text-rose-700', dot: 'bg-rose-400' },
+    { bg: 'bg-cyan-50/90', border: 'border-cyan-200/90', text: 'text-cyan-700', dot: 'bg-cyan-400' },
+    { bg: 'bg-violet-50/90', border: 'border-violet-200/90', text: 'text-violet-700', dot: 'bg-violet-400' },
+    { bg: 'bg-orange-50/90', border: 'border-orange-200/90', text: 'text-orange-700', dot: 'bg-orange-400' },
+    { bg: 'bg-teal-50/90', border: 'border-teal-200/90', text: 'text-teal-700', dot: 'bg-teal-400' },
+    { bg: 'bg-indigo-50/90', border: 'border-indigo-200/90', text: 'text-indigo-700', dot: 'bg-indigo-400' },
+    { bg: 'bg-pink-50/90', border: 'border-pink-200/90', text: 'text-pink-700', dot: 'bg-pink-400' },
+    { bg: 'bg-lime-50/90', border: 'border-lime-200/90', text: 'text-lime-700', dot: 'bg-lime-400' },
+    { bg: 'bg-fuchsia-50/90', border: 'border-fuchsia-200/90', text: 'text-fuchsia-700', dot: 'bg-fuchsia-400' },
+    { bg: 'bg-sky-50/90', border: 'border-sky-200/90', text: 'text-sky-700', dot: 'bg-sky-400' },
+  ];
+  let hash = 0;
+  const clean = code.trim().toLowerCase();
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash * 31 + clean.charCodeAt(i)) & 0xffffffff;
+  }
+  return palette[Math.abs(hash) % palette.length];
+}
+
+const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({
+  leads,
+  users,
+  currentUserRole,
+  onUpdateLead,
+  onOpenFees,
+  onDeleteLead,
+  onEditLead,
+  searchQuery: externalSearchQuery,
+  onSearchQueryChange,
+}) => {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'certificates' | 'lead' | 'fees' | 'history'>('details');
   const requestedTabRef = useRef<'details' | 'certificates' | 'lead' | 'fees' | 'history' | null>(null);
@@ -98,7 +172,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
   const PAGE_SIZE = 50;
   const MSG_CHUNK_LIMIT = 200;
 
-  // Messaging mode
   const [isMessagingMode, setIsMessagingMode] = useState(false);
   const [selectedMsgIds, setSelectedMsgIds] = useState<Set<string>>(new Set());
   const [isSelectingAllMsg, setIsSelectingAllMsg] = useState(false);
@@ -110,10 +183,10 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
   const [batchLeads, setBatchLeads] = useState<Lead[]>([]);
   const [isFetchingBatch, setIsFetchingBatch] = useState(false);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [dateScheduled, setDateScheduled] = useState('');
   const [batchModal, setBatchModal] = useState<{ code: string; members: Lead[] } | null>(null);
   const [leadLoading, setLeadLoading] = useState(false);
   const [newRemark, setNewRemark] = useState('');
-  const [dateScheduled, setDateScheduled] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [colleges, setColleges] = useState<string[]>([]);
@@ -142,16 +215,15 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
   const [feesGeneratingIndex, setFeesGeneratingIndex] = useState<number | null>(null);
 
   const copyBatchCode = (code: string) => {
+    if (!code) return;
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 1500);
   };
 
-  // Server already filters — internalLeads is the current page of matching leads
   const internshipLeads = internalLeads;
   const filteredLeads = internalLeads;
 
-  // Fetch all unique colleges and batches for filter dropdowns (always full list, unaffected by pagination)
   useEffect(() => {
     let mounted = true;
     apiService.getColleges().then(list => {
@@ -163,7 +235,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     return () => { mounted = false; };
   }, []);
 
-  // Core fetch: one page at a time from the server
   const fetchPage = async (page: number, query: string, currentFilters: FilterState) => {
     const requestId = ++internalRequestIdRef.current;
     setIsLoadingInternal(true);
@@ -199,7 +270,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     }
   };
 
-  // Fetch ALL leads (no pagination) for the batch grouping view
   const fetchAllBatchLeads = async (query: string, currentFilters: FilterState) => {
     const requestId = ++batchRequestIdRef.current;
     setIsFetchingBatch(true);
@@ -231,33 +301,25 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     }
   };
 
-  // When search or filters change, reset to page 1 and fetch
   useEffect(() => {
     setCurrentPage(1);
     void fetchPage(1, searchQuery, filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters]);
 
-  // When page changes (not due to filter reset), fetch that page
   useEffect(() => {
     void fetchPage(currentPage, searchQuery, filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
-  // Fetch all leads for batch view whenever batch mode is active and query/filters change
   useEffect(() => {
     if (viewMode === 'batch') {
       void fetchAllBatchLeads(searchQuery, filters);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, searchQuery, filters]);
 
-  // Exiting messaging mode (or a change of query) invalidates any prior selection
   useEffect(() => {
     setSelectedMsgIds(new Set());
   }, [searchQuery, filters]);
 
-  // Fetch known campaign names for the message modal dropdown
   useEffect(() => {
     let mounted = true;
     apiService.getCampaignNames().then(list => {
@@ -265,8 +327,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     }).catch(() => {});
     return () => { mounted = false; };
   }, []);
-
-  // ----- Messaging mode -----
 
   const toggleMsgSelection = (id: string) => {
     setSelectedMsgIds(prev => {
@@ -276,7 +336,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     });
   };
 
-  // Fetches every lead matching the current search/filters (not just the loaded page) in chunks
   const fetchAllMatchingLeadIds = async (query: string, currentFilters: FilterState): Promise<string[]> => {
     let page = 1;
     let total = 0;
@@ -355,7 +414,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     return arrActive || filters.fromDate !== '' || filters.toDate !== '' || !!(filters.college && filters.college !== '') || !!(filters.batch && filters.batch !== '') || !!(filters.assignedUser && filters.assignedUser !== '') || !!(filters.source && filters.source !== '');
   }, [filters]);
 
-  /** Group filtered leads by their latest batch_code */
   const batchGroups = useMemo(() => {
     const map = new Map<string, Lead[]>();
     for (const lead of batchLeads) {
@@ -366,7 +424,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(lead);
     }
-    // Sort: named batches first (alphabetical), unassigned last
     return Array.from(map.entries()).sort(([a], [b]) => {
       if (a === '__none__') return 1;
       if (b === '__none__') return -1;
@@ -419,9 +476,9 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     return grouped;
   }, [selectedLead?.conversations]);
 
-  // Pre-populate form when a lead is selected
   useEffect(() => {
     if (!selectedLead) return;
+    setDateScheduled((selectedLead.date_scheduled as string) || '');
     const latest =
       Array.isArray(selectedLead.InternDetails) && selectedLead.InternDetails.length > 0
         ? selectedLead.InternDetails[selectedLead.InternDetails.length - 1]
@@ -450,7 +507,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     requestedTabRef.current = null;
     setIsDirty(false);
     setNewRemark('');
-    setDateScheduled(selectedLead.date_scheduled ? selectedLead.date_scheduled.split('T')[0] : '');
     setFeesBilledAmount(selectedLead.fees?.billedAmount?.toString() || '0');
     setFeesInstallments(selectedLead.fees?.installments || []);
     setFeesDirty(false);
@@ -463,7 +519,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     setActiveTab('fees');
   };
 
-  // Billed amount is locked for non-admins once a value has been saved
   const isBilledAmountLocked =
     currentUserRole !== 'admin' && (selectedLead?.fees?.billedAmount ?? 0) > 0;
 
@@ -555,13 +610,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     } finally {
       setFeesLoading(false);
     }
-  };
-
-  const handleCancelFees = () => {
-    if (!selectedLead) return;
-    setFeesBilledAmount(selectedLead.fees?.billedAmount?.toString() || '0');
-    setFeesInstallments(selectedLead.fees?.installments || []);
-    setFeesDirty(false);
   };
 
   const handleGenerateBill = async (index: number) => {
@@ -695,7 +743,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     }
   };
 
-  /** Generate batch code for any lead from the batch view (no-batch group) */
   const handleGenerateBatchForLead = async (lead: Lead) => {
     setGeneratingBatchForLead(prev => new Set(prev).add(lead._id));
     try {
@@ -729,9 +776,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     });
   };
 
-  const hasInternDetails = (lead: Lead) =>
-    Array.isArray(lead.InternDetails) && lead.InternDetails.length > 0;
-
   const parseDate = (d: any): string => {
     if (!d) return '';
     if (typeof d === 'string') return d.split('T')[0];
@@ -745,33 +789,14 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const formatFeesDateTime = (dateString: any) => {
-    if (!dateString) return '';
-    const raw = typeof dateString === 'string' ? dateString : dateString?.$date;
-    if (!raw) return '';
-    return new Date(raw).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const feesPaidAmount = feesInstallments
     .filter(i => i.status === 'Paid')
     .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
   const feesBalanceAmount = Math.max((parseFloat(feesBilledAmount) || 0) - feesPaidAmount, 0);
   const pendingInstallments = feesInstallments.filter(i => i.status === 'Pending');
-  const overdueInstallments = pendingInstallments.filter(inst => {
-    const dueDateValue = parseDate(inst.dueDate);
-    if (!dueDateValue || inst.amount <= 0) return false;
-    const dueDate = new Date(dueDateValue);
-    if (Number.isNaN(dueDate.getTime())) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return dueDate < today;
-  });
+  const billedNum = parseFloat(feesBilledAmount) || 0;
+  const paidPct = billedNum > 0 ? Math.min(100, Math.round((feesPaidAmount / billedNum) * 100)) : 0;
+  const pendingPct = billedNum > 0 ? Math.min(100, Math.round((feesBalanceAmount / billedNum) * 100)) : 0;
 
   const handleStatusChange = async (status: string) => {
     if (!selectedLead) return;
@@ -801,16 +826,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
     } catch { alert('Failed to add remark'); } finally { setLeadLoading(false); }
   };
 
-  const handleDeleteRemark = async (remarkId: string) => {
-    if (!selectedLead) return;
-    try {
-      setLeadLoading(true);
-      const updated = await apiService.deleteRemark(selectedLead._id, remarkId);
-      handleUpdateLead(updated);
-    } catch { alert('Failed to delete remark'); } finally { setLeadLoading(false); }
-  };
-
-  const handleDateScheduledSave = async () => {
+    const handleDateScheduledSave = async () => {
     if (!selectedLead) return;
     try {
       setLeadLoading(true);
@@ -834,12 +850,32 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
           }
           return l;
         }));
-        onUpdateLead(result.lead);
+        setBatchLeads(prev => prev.map(l => {
+          if (l._id === result.lead._id) return result.lead;
+          if (batchId && l.batchId === batchId) return { ...l, date_scheduled: savedDate };
+          if (!batchId && batchCode) {
+            const lLatest = Array.isArray(l.InternDetails) && l.InternDetails.length > 0
+              ? l.InternDetails[l.InternDetails.length - 1]
+              : null;
+            if (lLatest?.batch_code?.trim() === batchCode) return { ...l, date_scheduled: savedDate };
+          }
+          return l;
+        }));
+        handleUpdateLead(result.lead);
       }
-    } catch { alert('Failed to save date scheduled'); } finally { setLeadLoading(false); }
+    } catch { alert('Failed to update scheduled date'); } finally { setLeadLoading(false); }
   };
 
-  const handleDeleteLeadById = (id: string) => {
+  const handleDeleteRemark = async (remarkId: string) => {
+    if (!selectedLead) return;
+    try {
+      setLeadLoading(true);
+      const updated = await apiService.deleteRemark(selectedLead._id, remarkId);
+      handleUpdateLead(updated);
+    } catch { alert('Failed to delete remark'); } finally { setLeadLoading(false); }
+  };
+
+const handleDeleteLeadById = (id: string) => {
     if (!window.confirm('Delete this lead permanently?')) return;
     onDeleteLead?.(id);
     if (selectedLeadId === id) setSelectedLeadId(null);
@@ -847,7 +883,6 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
 
   const handleBatchCodeClick = async (e: React.MouseEvent, code: string) => {
     e.stopPropagation();
-    // Show modal immediately with any available local members, then fetch all from server
     const localMembers = internshipLeads.filter(l => {
       const details = Array.isArray(l.InternDetails) ? l.InternDetails : [];
       const latest = details[details.length - 1];
@@ -868,122 +903,114 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
         setBatchModal({ code, members: res.leads });
       }
     } catch {
-      // keep local members already shown
+      // keep local members
     }
   };
 
-  const fieldClass =
-    'w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all';
+  const inputClass =
+    'w-full px-3 py-2 bg-[#f8fafc] border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all';
 
-  const labelClass = 'text-[10px] font-black text-slate-400 uppercase tracking-widest';
+  const labelClass = 'text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block';
 
   const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
   const paginatedLeads = internalLeads;
 
   return (
-    <div className="flex h-full bg-slate-50 overflow-hidden relative">
+    <div className="flex h-full  text-slate-800 overflow-hidden relative font-sans">
 
-      {/* ── Main panel ── */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${selectedLeadId ? 'md:mr-[480px]' : ''}`}>
+      {/* ── Main panel with right margin/spacing when popup is open ── */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${selectedLeadId ? 'md:mr-[calc(min(38vw,520px)-16px)]' : ''}`}>
 
         {/* Header */}
-        <div className="p-6 pb-3">
+        <div className={`transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5 pt-6 pb-3' : 'p-6 pb-3'}`}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-2xl font-black text-slate-800">Internship Enrolled</h1>
+              <h1 className="text-2xl font-bold text-slate-800">Internship Enrolled</h1>
               <p className="text-slate-500 text-sm mt-0.5">
-                {totalLeads} student{totalLeads !== 1 ? 's' : ''} • Manage certificate details & generation
+                {totalLeads} student{totalLeads !== 1 ? 's' : ''} · Manage batch, trainer & fees
               </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* View toggle */}
-              <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === 'list' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                  <Icons.Menu className="w-3.5 h-3.5" /> List
-                </button>
-                <button
-                  onClick={() => setViewMode('batch')}
-                  className={`px-3 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === 'batch' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                  <Icons.User className="w-3.5 h-3.5" /> Batches
-                </button>
-              </div>
-              {/* Search */}
-              <div className="relative">
-                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-48 shadow-sm"
-                />
-              </div>
-              <button
-                onClick={() => setFilters(prev => ({ ...prev, statusFilter: prev.statusFilter === 'responded' ? null : 'responded' }))}
-                title="Show interns who responded after a follow-up"
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border transition-all shadow-sm ${filters.statusFilter === 'responded' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
-              >
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${filters.statusFilter === 'responded' ? 'bg-white' : 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]'}`} />
-                <span className="hidden sm:inline">Responded</span>
-              </button>
-              <button
-                onClick={() => setIsFilterOpen(true)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${hasActiveFilters ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}
-              >
-                <Icons.Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">Filters</span>
-                {hasActiveFilters && <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>}
-              </button>
-              {viewMode === 'list' && (
-                isMessagingMode ? (
-                  <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase mr-1">{selectedMsgIds.size} Selected</span>
-                    <button
-                      onClick={selectAllMatching}
-                      disabled={isSelectingAllMsg}
-                      className="px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200 disabled:opacity-50"
-                    >
-                      {isSelectingAllMsg ? 'Selecting…' : 'Select All'}
-                    </button>
-                    <button onClick={uncheckAllMsg} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200">Clear</button>
-                    {selectedMsgIds.size > 0 && (
-                      <button onClick={() => setIsMessageModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:shadow-lg active:scale-95 transition-all">
-                        <Icons.Send className="w-4 h-4" />
-                        <span className="hidden sm:inline">Send Message</span>
-                      </button>
-                    )}
-                    <button onClick={exitMessagingMode} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Exit Messaging Mode"><Icons.X className="w-5 h-5" /></button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsMessagingMode(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-bold text-sm transition-all border border-indigo-200"
-                  >
-                    <Icons.Send className="w-4 h-4" />
-                    <span className="hidden sm:inline">Messaging Mode</span>
-                  </button>
-                )
-              )}
             </div>
           </div>
         </div>
 
-        {/* Local filter drawer - limited to internship filters */}
+        {/* Control bar */}
+        <div className={`pb-3 flex items-center justify-between gap-4 flex-nowrap transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5' : 'px-6'}`}>
+          <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white p-1 max-w-full overflow-x-auto min-w-0">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center justify-center gap-2 min-w-[88px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${viewMode === 'list' && filters.statusFilter !== 'responded' ? 'bg-teal-100 text-teal-700 shadow-sm' : 'text-slate-700 hover:bg-teal-50'}`}
+            >
+              <MenuIcon className="w-4 h-4" />List
+            </button>
+            <button
+              onClick={() => { setViewMode('batch'); setFilters(prev => ({ ...prev, statusFilter: null })); }}
+              className={`flex items-center justify-center gap-2 min-w-[120px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${viewMode === 'batch' ? 'bg-teal-100 text-teal-700 shadow-sm' : 'text-slate-700 hover:bg-teal-50'}`}
+            >
+              <UserIcon className="w-4 h-4" />Active Batch
+            </button>
+            {/* <button
+              onClick={() => { setViewMode('batch'); setFilters(prev => ({ ...prev, statusFilter: null })); }}
+              className={`flex items-center justify-center gap-2 min-w-[150px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${viewMode === 'batch' ? 'bg-teal-100 text-teal-700 shadow-sm' : 'text-slate-700 hover:bg-teal-50'}`}
+            >
+              <CheckIcon className="w-4 h-4 text-teal-50" />Completed Batch
+            </button> */}
+            <button
+              onClick={() => { setViewMode('list'); setFilters(prev => ({ ...prev, statusFilter: prev.statusFilter === 'responded' ? null : 'responded' })); }}
+              className={`flex items-center justify-center gap-2 min-w-[110px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${filters.statusFilter === 'responded' ? 'bg-teal-100 text-teal-700 shadow-sm' : 'text-slate-700 hover:bg-teal-50'}`}
+            >
+              <CheckIcon className="w-4 h-4" />Responded
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 justify-end">
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${hasActiveFilters ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-700 border-blue-200 hover:bg-blue-50'}`}
+            >
+              <FilterIcon className="w-4 h-4 text-blue-500" />
+              <span>Filters</span>
+              {hasActiveFilters && <span className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+            </button>
+
+            {viewMode === 'list' && (
+              isMessagingMode ? (
+                <div className="flex items-center gap-2 animate-in slide-in-from-right-2 flex-wrap">
+                  <span className="text-xs font-bold text-slate-500 uppercase mr-1">{selectedMsgIds.size} Selected</span>
+                  <button onClick={selectAllMatching} disabled={isSelectingAllMsg} className="px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200 disabled:opacity-50">{isSelectingAllMsg ? 'Selecting…' : 'Select All'}</button>
+                  <button onClick={uncheckAllMsg} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg border border-slate-200">Clear</button>
+                  {selectedMsgIds.size > 0 && (
+                    <button onClick={() => setIsMessageModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-700">
+                      <SendIcon className="w-4 h-4" />
+                      <span>Send Message</span>
+                    </button>
+                  )}
+                  <button onClick={exitMessagingMode} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><XIcon className="w-5 h-5" /></button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsMessagingMode(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 hover:bg-blue-50 rounded-xl font-semibold text-sm transition-all border border-blue-200 whitespace-nowrap active:scale-95 cursor-pointer shadow-2xs"
+                >
+                  <SendIcon className="w-4 h-4 text-blue-500" />
+                  <span>Message Mode</span>
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Filter Drawer */}
         {isFilterOpen && (
           <div className="fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-40 border-l border-slate-200">
             <div className="h-full flex flex-col">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <h2 className="text-lg font-bold text-slate-800">Filters</h2>
-                <button onClick={() => setIsFilterOpen(false)} className="p-2 hover:bg-slate-200 rounded-full"><Icons.X className="w-5 h-5 text-slate-500" /></button>
+                <button onClick={() => setIsFilterOpen(false)} className="p-2 hover:bg-slate-200 rounded-full"><XIcon className="w-5 h-5 text-slate-500" /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">College</label>
-                  <select value={filters.college || ''} onChange={e => setFilters({ ...filters, college: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg">
+                  <select value={filters.college || ''} onChange={e => setFilters({ ...filters, college: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg text-sm">
                     <option value="">All Colleges</option>
                     {colleges.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -991,7 +1018,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
 
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Batch</label>
-                  <select value={filters.batch || ''} onChange={e => setFilters({ ...filters, batch: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg">
+                  <select value={filters.batch || ''} onChange={e => setFilters({ ...filters, batch: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg text-sm">
                     <option value="">All Batches</option>
                     {batches.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
@@ -1000,96 +1027,51 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Date Range</label>
                   <div className="mt-2 flex gap-2">
-                    <input type="date" value={filters.fromDate || ''} onChange={e => setFilters({ ...filters, fromDate: e.target.value })} className="w-1/2 px-3 py-2 border border-slate-200 rounded-lg" />
-                    <input type="date" value={filters.toDate || ''} onChange={e => setFilters({ ...filters, toDate: e.target.value })} className="w-1/2 px-3 py-2 border border-slate-200 rounded-lg" />
+                    <input type="date" value={filters.fromDate || ''} onChange={e => setFilters({ ...filters, fromDate: e.target.value })} className="w-1/2 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="date" value={filters.toDate || ''} onChange={e => setFilters({ ...filters, toDate: e.target.value })} className="w-1/2 px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assigned To</label>
-                  <select value={filters.assignedUser || ''} onChange={e => setFilters({ ...filters, assignedUser: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg">
+                  <select value={filters.assignedUser || ''} onChange={e => setFilters({ ...filters, assignedUser: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg text-sm">
                     <option value="">All Staff</option>
                     {users.map(u => <option key={u.username} value={u.username}>{u.username}</option>)}
                   </select>
                 </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lead Source</label>
-                  <select value={filters.source || ''} onChange={e => setFilters({ ...filters, source: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg">
-                    <option value="">All Sources</option>
-                    {['Manual', 'Website', 'WhatsApp', 'Instagram', 'Facebook', 'LinkedIn', 'Referral', 'Other'].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                {campaignNames.length > 0 && (
-                  <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Campaign Replied</label>
-                    <select value={filters.campaigns?.[0] || ''} onChange={e => setFilters({ ...filters, campaigns: e.target.value ? [e.target.value] : [] })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg">
-                      <option value="">All Campaigns</option>
-                      {campaignNames.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                )}
               </div>
               <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-                <button onClick={() => { setFilters(initialFilters); }} className="flex-1 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg">Reset</button>
-                <button onClick={() => setIsFilterOpen(false)} className="flex-1 py-2 text-sm font-bold bg-emerald-600 text-white rounded-lg">Apply</button>
+                <button onClick={() => setFilters(initialFilters)} className="flex-1 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg">Reset</button>
+                <button onClick={() => setIsFilterOpen(false)} className="flex-1 py-2 text-sm font-bold bg-blue-500 text-white rounded-lg">Apply</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Summary chips */}
-        <div className="px-6 pb-3 flex gap-3 flex-wrap">
-          {/* <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-2 shadow-sm">
-            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Total</p>
-            <p className="text-xl font-black text-emerald-700">{internshipLeads.length}</p>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Details Saved</p>
-            <p className="text-xl font-black text-slate-700">
-              {internshipLeads.filter(hasInternDetails).length}
-            </p>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending Setup</p>
-            <p className="text-xl font-black text-slate-700">
-              {internshipLeads.filter(l => !hasInternDetails(l)).length}
-            </p>
-          </div> */}
-          {viewMode === 'batch' && (
-            <div className="bg-violet-50 border border-violet-100 rounded-2xl px-4 py-2 shadow-sm">
-              <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest">Batches</p>
-              <p className="text-xl font-black text-violet-700">
-                {batchGroups.filter(([k]) => k !== '__none__').length}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* ── List view ── */}
+        {/* ── List View ── */}
         {viewMode === 'list' && (
-          <div className="px-6 pb-6 flex-1 overflow-hidden">
+          <div className={`pb-6 flex-1 overflow-hidden transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5' : 'px-6'}`}>
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
-              <div className="overflow-auto flex-1">
+              <div className="overflow-auto flex-1 min-w-0 slim-scrollbar">
                 {isLoadingInternal && (
-                  <div className="px-5 py-2 bg-emerald-50 border-b border-emerald-100 text-xs text-emerald-600 font-bold flex items-center gap-1.5">
-                    <Icons.RefreshCcw className="w-3 h-3 animate-spin" /> Loading…
+                  <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-600 font-bold flex items-center gap-1.5">
+                    <RefreshIcon className="w-3 h-3 animate-spin" /> Loading students…
                   </div>
                 )}
-                <table className="w-full text-left border-collapse">
+                <table className="w-full min-w-[900px] text-left border-collapse">
                   <thead className="bg-slate-50 sticky top-0 z-10">
                     <tr>
                       {isMessagingMode && (
-                        <th className="px-4 py-4 w-10 text-center border-b border-slate-100 animate-in fade-in duration-300">
-                          <Icons.Check className="w-4 h-4 text-slate-300 mx-auto" />
+                        <th className="px-4 py-4 w-10 text-center border-b border-slate-100">
+                          <CheckIcon className="w-4 h-4 text-slate-300 mx-auto" />
                         </th>
                       )}
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Student</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden sm:table-cell">Contact</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden lg:table-cell">College</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden md:table-cell">Batch</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 text-center">Fees</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Action</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Student</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 hidden sm:table-cell">Contact</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 hidden lg:table-cell">College</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 hidden md:table-cell">Batch</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 text-center">Fees</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1099,9 +1081,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                       </tr>
                     ) : filteredLeads.length === 0 ? (
                       <tr>
-                        <td colSpan={isMessagingMode ? 7 : 6} className="px-6 py-16 text-center text-slate-400 italic text-sm">
-                          No internship enrolled students found.
-                        </td>
+                        <td colSpan={isMessagingMode ? 7 : 6} className="px-6 py-16 text-center text-slate-400 italic text-sm">No internship enrolled students found.</td>
                       </tr>
                     ) : (
                       paginatedLeads.map(lead => {
@@ -1109,41 +1089,35 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                           ? lead.InternDetails[lead.InternDetails.length - 1]
                           : null;
                         const batchCode = latestDetail?.batch_code?.trim() || '';
-                        const color = batchCode ? batchColor(batchCode) : null;
+
                         return (
                           <tr
                             key={lead._id}
-                            className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedLeadId === lead._id ? 'bg-emerald-50/50' : ''} ${selectedMsgIds.has(lead._id) ? 'bg-indigo-50/40' : ''}`}
+                            className={`hover:bg-slate-100/70 dark:hover:bg-slate-700/40 transition-colors cursor-pointer ${selectedLeadId === lead._id ? 'selected-lead-row bg-blue-50/80 dark:bg-blue-600/20 shadow-[inset_4px_0_0_#3b82f6] dark:shadow-[inset_4px_0_0_#60a5fa]' : ''}`}
                             onClick={() => setSelectedLeadId(lead._id)}
                           >
                             {isMessagingMode && (
-                              <td className="px-4 py-4 text-center animate-in fade-in duration-300" onClick={(e) => e.stopPropagation()}>
+                              <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                                 <input
                                   type="checkbox"
                                   checked={selectedMsgIds.has(lead._id)}
                                   onChange={() => toggleMsgSelection(lead._id)}
-                                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                               </td>
                             )}
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
                                   {(lead.userName || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-slate-800 text-sm">{lead.userName}</span>
+                                  <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                    <span>{lead.userName}</span>
                                     {lead.is_leader && (
-                                      <span title="Batch Leader" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[9px] font-black uppercase">
-                                        <Icons.Crown className="w-2.5 h-2.5" /> Leader
+                                      <span title="Batch Leader" className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[10px] font-bold uppercase">
+                                        <CrownIcon className="w-3 h-3" /> Leader
                                       </span>
-                                    )}
-                                    {lead.respondedAfterFollowUp && (
-                                      <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Responded"></span>
-                                    )}
-                                    {(lead.campaignHistory || []).some(c => c.repliedAt) && (
-                                      <span className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" title={`Replied to campaign: ${[...(lead.campaignHistory || [])].reverse().find(c => c.repliedAt)?.campaignName || ''}`}></span>
                                     )}
                                   </div>
                                   <div className="text-[10px] text-slate-400 mt-0.5">
@@ -1159,58 +1133,39 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                                   role="button"
                                   title="Open in WhatsApp"
                                   onClick={e => { e.stopPropagation(); const num = (lead.userNumber || '').replace(/\D/g, ''); if (num) window.open(`https://wa.me/${num}`, '_blank', 'noopener'); }}
-                                  className="text-green-500 hover:text-green-600 cursor-pointer"
+                                  className="text-emerald-500 hover:text-emerald-600 cursor-pointer"
                                 >
-                                  <Icons.WhatsApp className="w-4 h-4" />
+                                  <WhatsAppIcon className="w-4 h-4" />
                                 </span>
                               </div>
                             </td>
-                            <td className="px-5 py-4 hidden lg:table-cell">
-                              <span className="text-sm text-slate-700">
-                                {latestDetail?.college || <span className="text-slate-300 italic text-xs">—</span>}
+                            <td className="px-5 py-4 hidden lg:table-cell max-w-xs">
+                              <span className="text-sm text-slate-700 font-medium truncate block">
+                                {latestDetail?.college || <span className="text-slate-300 italic">—</span>}
                               </span>
                             </td>
                             <td className="px-5 py-4 hidden md:table-cell">
-                              <div className="flex flex-col gap-1">
-                                {batchCode && color ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <button
-                                      onClick={e => handleBatchCodeClick(e, batchCode)}
-                                      title="Click to see batch members"
-                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border cursor-pointer hover:shadow-md active:scale-95 transition-all ${color.bg} ${color.border} ${color.text}`}
-                                    >
-                                      <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
-                                      {batchCode}
-                                    </button>
-                                    <button
-                                      onClick={e => { e.stopPropagation(); copyBatchCode(batchCode); }}
-                                      title="Copy batch code"
-                                      className={`p-1 rounded transition-colors ${copiedCode === batchCode ? 'text-emerald-500 bg-emerald-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                                    >
-                                      {copiedCode === batchCode
-                                        ? <Icons.Check className="w-3 h-3" />
-                                        : <Icons.Copy className="w-3 h-3" />}
-                                    </button>
-                                  </div>
-                                ) : (
+                              {batchCode ? (() => {
+                                const bColor = getBatchColor(batchCode);
+                                return (
                                   <button
-                                    onClick={e => { e.stopPropagation(); handleGenerateBatchForLead(lead); }}
-                                    disabled={generatingBatchForLead.has(lead._id)}
-                                    title="Generate batch code"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-600 text-white text-[9px] font-black hover:bg-violet-700 transition-all active:scale-95 disabled:opacity-50"
+                                    onClick={e => handleBatchCodeClick(e, batchCode)}
+                                    title="Click to see batch members"
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase transition-all hover:shadow-xs active:scale-95 cursor-pointer ${bColor.bg} ${bColor.border} ${bColor.text}`}
                                   >
-                                    {generatingBatchForLead.has(lead._id)
-                                      ? <Icons.RefreshCcw className="w-2.5 h-2.5 animate-spin" />
-                                      : <Icons.RefreshCcw className="w-2.5 h-2.5" />}
-                                    Generate
+                                    {batchCode}
                                   </button>
-                                )}
-                                {lead.date_scheduled && (
-                                  <span className="text-[10px] text-slate-400 font-medium">
-                                    {new Date(lead.date_scheduled).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                  </span>
-                                )}
-                              </div>
+                                );
+                              })() : (
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleGenerateBatchForLead(lead); }}
+                                  disabled={generatingBatchForLead.has(lead._id)}
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 transition-all shadow-sm"
+                                >
+                                  {generatingBatchForLead.has(lead._id) ? <RefreshIcon className="w-3.5 h-3.5 animate-spin" /> : <PlusIcon className="w-3.5 h-3.5" />}
+                                  Add
+                                </button>
+                              )}
                             </td>
                             <td className="px-5 py-4 text-center">
                               {(() => {
@@ -1219,25 +1174,22 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                                   return (
                                     <button
                                       onClick={e => { e.stopPropagation(); openFeesTabForLead(lead._id); }}
-                                      title="Add fees"
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-emerald-700 transition-all hover:shadow-sm active:scale-95"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 text-white text-[10px] font-bold uppercase hover:bg-teal-700 transition-all"
                                     >
-                                      <Icons.Plus className="w-3 h-3" />
-                                      Add
+                                      <PlusIcon className="w-3 h-3" /> Add
                                     </button>
                                   );
                                 }
                                 return (
                                   <button
                                     onClick={e => { e.stopPropagation(); openFeesTabForLead(lead._id); }}
-                                    title="Open fees module"
-                                    className={`inline-flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all hover:shadow-sm active:scale-95 ${fees.allPaid ? 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100' : 'bg-amber-50 border-amber-100 hover:bg-amber-100'}`}
+                                    className={`inline-flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all ${fees.allPaid ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}
                                   >
-                                    <span className={`text-[10px] font-black uppercase ${fees.allPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                    <span className="text-[10px] font-bold uppercase">
                                       {fees.allPaid ? '✓ All Paid' : `${fees.paidCount}/${fees.totalCount} Paid`}
                                     </span>
-                                    <span className={`text-[9px] ${fees.allPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                      ₹{fees.totalPaid.toLocaleString()} paid{fees.totalPending > 0 ? ` · ₹${fees.totalPending.toLocaleString()} due` : ''}
+                                    <span className="text-[9px]">
+                                      ₹{fees.totalPaid.toLocaleString()} paid {fees.totalPending > 0 ? `· ₹${fees.totalPending.toLocaleString()} due` : ''}
                                     </span>
                                   </button>
                                 );
@@ -1247,9 +1199,10 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={e => { e.stopPropagation(); setSelectedLeadId(lead._id); }}
-                                  className="text-emerald-600 hover:text-emerald-700 text-xs font-bold hover:underline"
+                                  className="text-[#0d9488] hover:text-teal-700 p-1.5 rounded-lg hover:bg-teal-50 transition-colors flex-shrink-0"
+                                  title="Manage student"
                                 >
-                                  Manage
+                                  <ManageIcon className="w-4 h-4" />
                                 </button>
                                 {currentUserRole === 'admin' && (
                                   <button
@@ -1257,7 +1210,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                                     className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                     title="Delete lead"
                                   >
-                                    <Icons.Trash className="w-3.5 h-3.5" />
+                                    <TrashIcon className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </div>
@@ -1269,6 +1222,8 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
                   <span className="text-xs text-slate-500">
@@ -1278,7 +1233,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                     >
                       ← Prev
                     </button>
@@ -1288,7 +1243,7 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                     >
                       Next →
                     </button>
@@ -1299,1044 +1254,1128 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({ leads, 
           </div>
         )}
 
-        {/* ── Batch Groups view ── */}
+        {/* ── Batch Groups View ── */}
         {viewMode === 'batch' && (
-          <div className="px-6 pb-6 flex-1 overflow-auto space-y-3">
-            {isFetchingBatch && (
-              <div className="px-5 py-2 bg-emerald-50 border border-emerald-100 rounded-xl text-xs text-emerald-600 font-bold flex items-center gap-1.5">
-                <Icons.RefreshCcw className="w-3 h-3 animate-spin" /> Loading all batches…
-              </div>
-            )}
-            {!isFetchingBatch && batchGroups.length === 0 && (
+          <div className={`pb-6 flex-1 min-h-0 overflow-y-auto transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5' : 'px-6'}`}>
+            {batchGroups.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                  <Icons.User className="w-8 h-8 opacity-30" />
-                </div>
-                <p className="text-sm font-bold text-slate-500">No students found</p>
+                <UserIcon className="w-8 h-8 opacity-30 mb-2" />
+                <p className="text-sm font-bold text-slate-500">No internship batches found</p>
               </div>
             )}
-            {batchGroups.map(([batchKey, members]) => {
-              const isNone = batchKey === '__none__';
-              const color = isNone
-                ? { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-500', dot: 'bg-slate-300' }
-                : batchColor(batchKey);
-              const isOpen = expandedBatches.has(batchKey);
-              return (
-                <div key={batchKey} className={`rounded-2xl border ${color.border} overflow-hidden shadow-sm`}>
-                  {/* Batch header */}
-                  <button
-                    className={`w-full flex items-center justify-between px-5 py-4 ${color.bg} hover:brightness-[0.97] transition-all`}
-                    onClick={() => toggleBatch(batchKey)}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Tree connector dot */}
-                      <div className={`w-3 h-3 rounded-full ${color.dot} flex-shrink-0`} />
-                      <div className="text-left">
-                        <p className={`text-sm font-black uppercase tracking-wider ${color.text}`}>
-                          {isNone ? 'No Batch Assigned' : batchKey}
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {members.length} student{members.length !== 1 ? 's' : ''}
-                          {!isNone && ` • ${members.filter(hasInternDetails).length} ready`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!isNone && (
-                        <span className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${color.bg} ${color.border} ${color.text}`}>
-                          {members.filter(hasInternDetails).length}/{members.length} ready
-                        </span>
-                      )}
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isOpen ? color.text : 'text-slate-400'}`}>
-                        <svg className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                      </div>
-                    </div>
-                  </button>
 
-                  {/* Expandable member list */}
-                  {isOpen && (
-                    <div className="bg-white divide-y divide-slate-50">
-                      {/* Tree line connector */}
-                      {members.map((lead, idx) => {
-                        const isLast = idx === members.length - 1;
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {batchGroups.map(([batchKey, members]) => {
+                const isNone = batchKey === '__none__';
+                const isOpen = expandedBatches.has(batchKey);
+                const paidCount = members.filter(member => getFeesSummary(member)?.allPaid).length;
+
+                return (
+                  <section
+                    key={batchKey}
+                    className="min-w-0 overflow-hidden rounded-xl border border-teal-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleBatch(batchKey)}
+                      className="w-full bg-teal-50 px-4 py-2.5 text-center transition-colors"
+                    >
+                      <p className="truncate text-xs font-extrabold uppercase tracking-wide text-slate-800">
+                        {isNone ? 'No Batch Assigned' : `BATCH - ${batchKey}`}
+                      </p>
+                      <div className="mt-1.5 flex items-center justify-center gap-2 text-[9px] font-semibold text-teal-700">
+                        <span className="flex flex-col items-center">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-[10px] font-bold text-white">{members.length}</span>
+                          <span>Students</span>
+                        </span>
+                        <span className="mb-3 w-7 border-t border-dotted border-green-700" />
+                        <span className="flex flex-col items-center">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[10px] font-bold text-white">{paidCount}</span>
+                          <span>Paid</span>
+                        </span>
+                        <ChevronDownIcon className={`mb-2 ml-2 h-4 w-4 text-slate-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </button>
+
+                    <div className="px-2.5 pb-2.5">
+                      <div className="grid grid-cols-[minmax(0,1.7fr)_38px_46px_minmax(0,1fr)_25px] items-center gap-1 border-b border-slate-100 py-2 text-[8px] font-bold uppercase text-slate-500 sm:grid-cols-[minmax(0,1.7fr)_48px_52px_minmax(0,1fr)_28px]">
+                        <span><span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-green-500" />{members.length} Students</span>
+                        <span className="text-center">Paid</span>
+                        <span className="text-center">Manage</span>
+                        <span className="text-center">Amount</span>
+                        <span className="text-center">Remove</span>
+                      </div>
+
+                      {(isOpen ? members : members.slice(0, 3)).map(lead => {
+                        const fees = getFeesSummary(lead);
                         return (
                           <div
                             key={lead._id}
-                            className={`flex items-center gap-0 hover:bg-slate-50 transition-colors cursor-pointer group ${selectedLeadId === lead._id ? 'bg-emerald-50/40' : ''}`}
-                            onClick={() => setSelectedLeadId(lead._id)}
+                            className="grid grid-cols-[minmax(0,1.7fr)_38px_46px_minmax(0,1fr)_25px] items-center gap-1 border-b border-slate-50 py-2 last:border-b-0 sm:grid-cols-[minmax(0,1.7fr)_48px_52px_minmax(0,1fr)_28px]"
                           >
-                            {/* Tree branch lines */}
-                            <div className="pl-5 flex-shrink-0 flex flex-col items-center self-stretch">
-                              <div className="w-px bg-slate-200 flex-1" />
-                              <div className="flex items-center">
-                                <div className="w-px bg-slate-200 h-1/2" />
-                                <div className="w-3 h-px bg-slate-200" />
-                              </div>
-                              {!isLast && <div className="w-px bg-slate-200 flex-1" />}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedLeadId(lead._id)}
+                              className="flex min-w-0 items-center gap-1.5 text-left hover:opacity-80"
+                              title={`Open ${lead.userName || 'student'} details`}
+                            >
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-[10px] font-bold text-teal-700">
+                                {(lead.userName || '?').charAt(0).toUpperCase()}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-[9px] font-bold text-slate-800">{lead.userName || 'Unknown student'}</span>
+                                <span className="block truncate text-[8px] text-slate-500">{lead.userNumber || '—'}</span>
+                              </span>
+                            </button>
+
+                            <div className="flex justify-center">
+                              {fees?.allPaid ? (
+                                <CheckIcon className="h-3.5 w-3.5 text-green-600" />
+                              ) : (
+                                <span className="rounded bg-green-600 px-1 py-0.5 text-[7px] font-bold text-white">{fees ? `${fees.paidCount}/${fees.totalCount}` : 'Add'}</span>
+                              )}
                             </div>
 
-                            <div className="flex-1 flex items-center justify-between px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${isNone ? 'bg-slate-100 text-slate-500' : `${color.bg} ${color.text}`}`}>
-                                  {(lead.userName || '?').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-sm font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{lead.userName}</span>
-                                    {lead.is_leader && (
-                                      <span title="Batch Leader" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[9px] font-black uppercase">
-                                        <Icons.Crown className="w-2.5 h-2.5" /> Leader
-                                      </span>
-                                    )}
-                                    {lead.respondedAfterFollowUp && (
-                                      <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Responded"></span>
-                                    )}
-                                    {(lead.campaignHistory || []).some(c => c.repliedAt) && (
-                                      <span className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" title={`Replied to campaign: ${[...(lead.campaignHistory || [])].reverse().find(c => c.repliedAt)?.campaignName || ''}`}></span>
-                                    )}
-                                  </div>
-                                  <p className="text-[10px] text-slate-400">{lead.userNumber}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 flex-wrap justify-end">
-                                {/* Fees chip */}
-                                {(() => {
-                                  const fees = getFeesSummary(lead);
-                                  if (!fees) {
-                                    return (
-                                      <button
-                                        onClick={e => { e.stopPropagation(); openFeesTabForLead(lead._id); }}
-                                        title="Add fees"
-                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wide hover:bg-emerald-700 transition-all hover:shadow-sm active:scale-95"
-                                      >
-                                        <Icons.Plus className="w-3 h-3" />
-                                        Add Fees
-                                      </button>
-                                    );
-                                  }
-                                  return (
-                                    <button
-                                      onClick={e => { e.stopPropagation(); openFeesTabForLead(lead._id); }}
-                                      title="Open fees module"
-                                      className={`inline-flex flex-col items-center px-2 py-1 rounded-lg border transition-all hover:shadow-sm active:scale-95 ${fees.allPaid ? 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100' : 'bg-amber-50 border-amber-100 hover:bg-amber-100'}`}
-                                    >
-                                      <span className={`text-[9px] font-black uppercase ${fees.allPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                        {fees.allPaid ? '✓ All Paid' : `${fees.paidCount}/${fees.totalCount} Paid`}
-                                      </span>
-                                      <span className={`text-[8px] ${fees.allPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                        ₹{fees.totalPaid.toLocaleString()}{fees.totalPending > 0 ? ` · ₹${fees.totalPending.toLocaleString()} due` : ''}
-                                      </span>
-                                    </button>
-                                  );
-                                })()}
-                                {/* Generate batch button — only for no-batch group */}
-                                {isNone && (
-                                  <button
-                                    onClick={e => { e.stopPropagation(); handleGenerateBatchForLead(lead); }}
-                                    disabled={generatingBatchForLead.has(lead._id)}
-                                    title="Generate batch code"
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-600 text-white text-[9px] font-black hover:bg-violet-700 transition-all active:scale-95 disabled:opacity-50"
-                                  >
-                                    {generatingBatchForLead.has(lead._id)
-                                      ? <Icons.RefreshCcw className="w-2.5 h-2.5 animate-spin" />
-                                      : <Icons.RefreshCcw className="w-2.5 h-2.5" />}
-                                    Gen Batch
-                                  </button>
-                                )}
-                                <span
-                                  role="button"
-                                  title="Open in WhatsApp"
-                                  onClick={e => { e.stopPropagation(); const num = (lead.userNumber || '').replace(/\D/g, ''); if (num) window.open(`https://wa.me/${num}`, '_blank', 'noopener'); }}
-                                  className="text-green-400 hover:text-green-600 cursor-pointer"
-                                >
-                                  <Icons.WhatsApp className="w-3.5 h-3.5" />
-                                </span>
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedLeadId(lead._id)}
+                                title="Manage student"
+                                className="text-[#0d9488] hover:text-teal-700 p-1 rounded hover:bg-teal-50 transition-colors"
+                              >
+                                <ManageIcon className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => openFeesTabForLead(lead._id)}
+                                title="Manage fees"
+                                className={`max-w-full rounded-md px-1.5 py-1 text-left text-[7px] leading-tight ${fees?.allPaid ? 'bg-green-100 text-green-800' : 'bg-emerald-100 text-emerald-800'} hover:ring-1 hover:ring-emerald-300`}
+                              >
+                                <span className="block font-bold">{fees?.allPaid ? '✓ All Paid' : fees ? 'Fees' : '+ Add'}</span>
+                                {fees && <span className="block">₹{fees.totalPaid.toLocaleString()} paid</span>}
+                              </button>
+                            </div>
+
+                            <div className="flex justify-center">
+                              {onDeleteLead && (
                                 <button
-                                  onClick={e => { e.stopPropagation(); setSelectedLeadId(lead._id); }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-600 hover:text-emerald-700 text-xs font-black"
+                                  type="button"
+                                  onClick={() => handleDeleteLeadById(lead._id)}
+                                  title="Remove student"
+                                  className="text-rose-500 hover:text-rose-700"
                                 >
-                                  Manage →
+                                  <TrashIcon className="h-3.5 w-3.5" />
                                 </button>
-                                {currentUserRole === 'admin' && (
-                                  <button
-                                    onClick={e => { e.stopPropagation(); handleDeleteLeadById(lead._id); }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                    title="Delete lead"
-                                  >
-                                    <Icons.Trash className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
                         );
                       })}
+
+                      {members.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleBatch(batchKey)}
+                          className="mt-2 w-full rounded-md bg-slate-50 py-1.5 text-[10px] font-bold text-blue-600 hover:bg-blue-50"
+                        >
+                          {isOpen ? 'Show less' : `View all ${members.length} students`}
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </section>
+                );
+              })}
+            </div>
           </div>
         )}
-        
       </div>
 
-      {/* ── Batch members modal ── */}
+      {/* ── Batch Modal ── */}
       {batchModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => setBatchModal(null)}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setBatchModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
-                {(() => {
-                  const c = batchColor(batchModal.code);
-                  return (
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase border ${c.bg} ${c.border} ${c.text}`}>
-                      <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-                      {batchModal.code}
-                    </span>
-                  );
-                })()}
-                <p className="text-[10px] text-slate-400 mt-1">{batchModal.members.length} student{batchModal.members.length !== 1 ? 's' : ''} in this batch</p>
+                <h2 className="text-base font-bold text-slate-800">Batch Members</h2>
+                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase mt-1 ${getBatchColor(batchModal.code).bg} ${getBatchColor(batchModal.code).border} ${getBatchColor(batchModal.code).text}`}>
+                  {batchModal.code}
+                </span>
               </div>
-              <button onClick={() => setBatchModal(null)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
-                <Icons.X className="w-4 h-4" />
+              <button onClick={() => setBatchModal(null)} className="p-2 hover:bg-slate-100 rounded-full">
+                <XIcon className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            <div className="divide-y divide-slate-50 max-h-80 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto divide-y divide-slate-100">
               {batchModal.members.map(m => (
-                <button
-                  key={m._id}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors text-left"
-                  onClick={() => {
-                    setInternalLeads(prev => prev.some(l => l._id === m._id) ? prev : [...prev, m]);
-                    setSelectedLeadId(m._id);
-                    setBatchModal(null);
-                  }}
-                >
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
-                    {(m.userName || '?').charAt(0).toUpperCase()}
+                <div key={m._id} className="flex items-center justify-between p-4 hover:bg-slate-50">
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{m.userName}</p>
+                    <p className="text-xs text-slate-400">{m.userNumber}</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-slate-800">{m.userName}</span>
-                      {m.is_leader && (
-                        <span title="Batch Leader" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[9px] font-black uppercase">
-                          <Icons.Crown className="w-2.5 h-2.5" /> Leader
-                        </span>
-                      )}
-                      {m.respondedAfterFollowUp && (
-                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Responded"></span>
-                      )}
-                      {(m.campaignHistory || []).some(c => c.repliedAt) && (
-                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" title={`Replied to campaign: ${[...(m.campaignHistory || [])].reverse().find(c => c.repliedAt)?.campaignName || ''}`}></span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-500">{m.userNumber}</p>
-                  </div>
-                  <Icons.Check className="w-4 h-4 text-emerald-300 flex-shrink-0" />
-                </button>
+                  <button
+                    onClick={() => {
+                      setBatchModal(null);
+                      setSelectedLeadId(m._id);
+                    }}
+                    className="text-[#0d9488] hover:text-teal-700 p-1.5 rounded-lg hover:bg-teal-50 transition-colors flex-shrink-0"
+                    title="Manage student"
+                  >
+                    <ManageIcon className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Mobile overlay ── */}
-      {selectedLeadId && (
+      {/* ── Detail Pop-up Panel (Strict Match with Reference Image) ── */}
+      {selectedLead && (
         <div
-          className="md:hidden fixed inset-0 bg-black/20 z-20 backdrop-blur-sm"
-          onClick={() => setSelectedLeadId(null)}
-        />
-      )}
+          className="fixed inset-y-0 right-0 sm:inset-y-2 sm:right-2 w-full sm:w-[min(94vw,520px)] md:w-[min(38vw,520px)] min-w-0 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-none sm:rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden font-sans animate-in slide-in-from-right duration-200"
+          style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+        >
 
-      {/* ── Right sidebar panel ── */}
-      <div
-        className={`fixed inset-y-0 right-0 w-full md:w-[480px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-30 flex flex-col border-l border-slate-200 ${selectedLeadId ? 'translate-x-0' : 'translate-x-full'}`}
-      >
-        {selectedLead && (
-          <>
-            {/* Panel header */}
-            <div className="p-5 border-b border-slate-100 bg-slate-50/80 shrink-0">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold flex-shrink-0">
-                    {(selectedLead.userName || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-slate-800">{selectedLead.userName}</h2>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
-                      <span>{selectedLead.userNumber}</span>
-                      <span
-                        role="button"
-                        title="Open in WhatsApp"
-                        onClick={e => { e.stopPropagation(); const num = (selectedLead.userNumber || '').replace(/\D/g, ''); if (num) window.open(`https://wa.me/${num}`, '_blank', 'noopener'); }}
-                        className="text-green-500 hover:text-green-600 cursor-pointer"
-                      >
-                        <Icons.WhatsApp className="w-4 h-4" />
-                      </span>
-                      <span className="text-slate-300">•</span>
-                      <span className="text-emerald-600 font-bold">{selectedLead.course}</span>
-                    </div>
+          {/* Pop-up Header */}
+          <div className="p-5 pb-3 border-b border-teal-200 dark:border-teal-900/60 bg-white dark:bg-slate-900 shrink-0">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 ${getAvatarColor(selectedLead.userName || 'M')}`}>
+                  {(selectedLead.userName || '?').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-bold text-slate-800 dark:text-white text-base leading-tight truncate">{selectedLead.userName}</h2>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-500 font-medium">{selectedLead.userNumber}</span>
+                    <span
+                      role="button"
+                      onClick={() => {
+                        const num = (selectedLead.userNumber || '').replace(/\D/g, '');
+                        if (num) window.open(`https://wa.me/${num}`, '_blank', 'noopener');
+                      }}
+                      className="text-emerald-500 hover:text-emerald-600 cursor-pointer"
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-xs font-bold text-teal-700">College Internship</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedLeadId(null)}
-                  className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 transition-colors"
-                >
-                  <Icons.X className="w-4 h-4" />
-                </button>
               </div>
 
-              {/* Tabs */}
-              <div className="flex gap-1 mt-4 p-1 bg-slate-100 rounded-xl">
-                {[
-                  { id: 'details', label: 'Cert Details' },
-                  { id: 'certificates', label: `Certs${generatedCerts.length > 0 ? ` (${generatedCerts.length})` : ''}` },
-                  { id: 'fees', label: `Fees${feesInstallments.length > 0 ? ` (${feesInstallments.length})` : ''}` },
-                  { id: 'lead', label: 'Lead Details' },
-                  { id: 'history', label: 'History' },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === tab.id ? 'bg-white text-emerald-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              {activeTab === 'certificates' && (
-                <div className="mt-3 flex justify-end">
-                  <button
-                    onClick={handlePrintAll}
-                    disabled={printingAll}
-                    title="Print all certificates as a combined PDF"
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-black rounded-lg hover:bg-emerald-700 transition-colors shadow-sm active:scale-[0.97] disabled:opacity-50"
-                  >
-                    {printingAll ? (
-                      <><Icons.RefreshCcw className="w-3 h-3 animate-spin" /> Opening...</>
-                    ) : (
-                      <><Icons.Printer className="w-3 h-3" /> Print All</>
-                    )}
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => setSelectedLeadId(null)}
+                className="w-7 h-7 rounded-full text-teal-700 hover:bg-slate-100 flex items-center justify-center transition-colors"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Panel body */}
-            <div className="flex-1 overflow-y-auto p-5">
+            {/* Pill Tabs Header */}
+            <div className="flex gap-1 mt-4 p-1 bg-teal-50 dark:bg-slate-950/80 rounded-2xl border border-transparent dark:border-slate-800">
+              {[
+                { id: 'details', label: 'CERT DETAILS' },
+                { id: 'certificates', label: 'CERTS' },
+                { id: 'fees', label: 'FEES' },
+                { id: 'lead', label: 'LEAD DETAILS' },
+                { id: 'history', label: 'HISTORY' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex-1 py-2 text-xs font-bold tracking-wide uppercase rounded-xl transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-teal-100 text-teal-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-              {/* ── Details tab ── */}
-              {activeTab === 'details' && (
-                <div className="space-y-4">
-                  {/* Row: Salutation + Name */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>Salutation</label>
-                      <select value={formData.salutation || ''} onChange={e => handleFieldChange('salutation', e.target.value)} className={fieldClass}>
-                        <option value="">-</option>
-                        {SALUTATIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      <label className={labelClass}>Full Name</label>
-                      <input type="text" value={formData.userName || ''} onChange={e => handleFieldChange('userName', e.target.value)} className={fieldClass} placeholder="Student name" />
-                    </div>
-                  </div>
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 dark:bg-slate-900">
 
-                  {/* Email + Phone */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>Email</label>
-                      <input type="email" value={formData.userEmail || ''} onChange={e => handleFieldChange('userEmail', e.target.value)} className={fieldClass} placeholder="email@example.com" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelClass}>Phone</label>
-                      <input type="text" value={formData.phone || ''} onChange={e => handleFieldChange('phone', e.target.value)} className={fieldClass} placeholder="10-digit number" />
-                    </div>
-                  </div>
-
-                  {/* Reg No + Year of Study */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>Register No.</label>
-                      <input type="text" value={formData.reg_no || ''} onChange={e => handleFieldChange('reg_no', e.target.value)} className={fieldClass} placeholder="Reg number" />
-                    </div>
-                    <div className="space-y-1">
-                     <label className={labelClass}>Year Of Study</label>
-                      <input type="text" value={formData.year_of_study || ''} onChange={e => handleFieldChange('year_of_study', e.target.value)} className={fieldClass} placeholder="Year Of Study" />
-                    </div>
-                  </div>
-
-                  {/* College */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>College</label>
-                    <input type="text" value={formData.college || ''} onChange={e => handleFieldChange('college', e.target.value)} className={fieldClass} placeholder="College name" />
-                  </div>
-
-                  {/* College Location + Department */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>College Location</label>
-                      <input type="text" value={formData.college_location || ''} onChange={e => handleFieldChange('college_location', e.target.value)} className={fieldClass} placeholder="City" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelClass}>Department</label>
-                      <input type="text" value={formData.department || ''} onChange={e => handleFieldChange('department', e.target.value)} className={fieldClass} placeholder="e.g. Computer Science" />
-                    </div>
-                  </div>
-
-                  {/* Degree */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Degree</label>
-                    <input type="text" value={formData.degree || ''} onChange={e => handleFieldChange('degree', e.target.value)} className={fieldClass} placeholder="e.g. Bachelor of Technology" />
-                  </div>
-
-                  {/* Internship */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Internship Program</label>
-                    <input type="text" value={formData.internship || ''} onChange={e => handleFieldChange('internship', e.target.value)} className={fieldClass} placeholder="e.g. Full Stack Python" />
-                  </div>
-
-                  {/* Workshop */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Workshop (optional)</label>
-                    <input type="text" value={formData.workshop || ''} onChange={e => handleFieldChange('workshop', e.target.value)} className={fieldClass} placeholder="e.g. PySpark, or leave blank" />
-                  </div>
-
-                  {/* Company */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Company</label>
-                    <select value={formData.company || ''} onChange={e => handleFieldChange('company', e.target.value)} className={fieldClass}>
-                      <option value="">Select company</option>
-                      {formData.company && !CLIENT_COMPANIES.includes(formData.company) && (
-                        <option value={formData.company}>{formData.company}</option>
-                      )}
-                      {CLIENT_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className={labelClass}>Batch Leader</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all ${!isLeader ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                        <input
-                          type="radio"
-                          name="is_leader"
-                          checked={!isLeader}
-                          onChange={() => { setIsLeader(false); setIsDirty(true); }}
-                          className="text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span className="text-sm font-semibold">Not Leader</span>
-                      </label>
-                      <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all ${isLeader ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                        <input
-                          type="radio"
-                          name="is_leader"
-                          checked={isLeader}
-                          onChange={() => { setIsLeader(true); setIsDirty(true); }}
-                          className="text-amber-500 focus:ring-amber-500"
-                        />
-                        <span className="text-sm font-semibold">Leader</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Batch Code — with Generate button */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Batch Code</label>
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={formData.batch_code || ''}
-                          onChange={e => handleFieldChange('batch_code', e.target.value)}
-                          className={fieldClass}
-                          placeholder="e.g. BATCH-KRP-04-25"
-                        />
-                        {formData.batch_code && (() => {
-                          const c = batchColor(formData.batch_code);
-                          return (
-                            <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${c.dot}`} />
-                          );
-                        })()}
-                      </div>
-                      {formData.batch_code && (
-                        <button
-                          onClick={() => copyBatchCode(formData.batch_code || "")}
-                          title="Copy batch code"
-                          className={`flex-shrink-0 flex items-center justify-center gap-1 px-2.5 h-9 rounded-xl text-xs font-black transition-all active:scale-[0.97] ${copiedCode === formData.batch_code ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'}`}
-                        >
-                          {copiedCode === formData.batch_code
-                            ? <><Icons.Check className="w-3.5 h-3.5" /> Copied!</>
-                            : <Icons.Copy className="w-4 h-4" />}
-                        </button>
-                      )}
-                      <button
-                        onClick={handleGenerateBatch}
-                        disabled={generatingBatch}
-                        title="Auto-generate batch code from college & start date"
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-all active:scale-[0.97] disabled:opacity-50 shadow-sm"
-                      >
-                        {generatingBatch ? (
-                          <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Icons.RefreshCcw className="w-3.5 h-3.5" />
-                        )}
-                        Generate
-                      </button>
-                    </div>
-                    <p className="text-[10px] text-slate-400 pl-0.5">
-                      Auto-generates from college name + start date (e.g. BATCH-KRP-04-25)
-                    </p>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>Start Date</label>
-                      <input type="date" value={formData.start_date || ''} onChange={e => handleFieldChange('start_date', e.target.value)} className={fieldClass} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelClass}>End Date</label>
-                      <input type="date" value={formData.end_date || ''} onChange={e => handleFieldChange('end_date', e.target.value)} className={fieldClass} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelClass}>Issue Date</label>
-                      <input type="date" value={formData.issue_date || ''} onChange={e => handleFieldChange('issue_date', e.target.value)} className={fieldClass} />
-                    </div>
-                  </div>
-
-                  {isDirty && (
-                    <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest text-center animate-pulse">
-                      Unsaved changes — save before generating
-                    </p>
-                  )}
+            {/* ── CERT DETAILS TAB ── */}
+            {activeTab === 'details' && (
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-500">Internship Certificate Details</p>
                 </div>
-              )}
 
-              {activeTab === 'fees' && (
-                <div className="space-y-5">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className={`p-3 rounded-xl border ${isBilledAmountLocked ? 'bg-slate-100 border-slate-200' : 'bg-slate-50 border-slate-100'}`}>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        Billed Amount
-                        {isBilledAmountLocked && (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        )}
-                      </label>
-                      <div className="flex items-center mt-1">
-                        <span className="text-slate-400 mr-1">Rs</span>
+                {/* Unified Details Card matching Internship theme */}
+                <div className="bg-[#f0fdfa] dark:bg-slate-950/70 border border-teal-100/90 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xs">
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-3.5">Certificate Details</h4>
+
+                  <div className="space-y-3.5">
+                    {/* Salutation + Full Name */}
+                    <div className="grid grid-cols-12 gap-2.5">
+                      <div className="col-span-4">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Salutation :
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={formData.salutation || 'Ms'}
+                            onChange={e => handleFieldChange('salutation', e.target.value)}
+                            className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 pr-7 appearance-none focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all cursor-pointer shadow-2xs"
+                          >
+                            <option value="">Select</option>
+                            {SALUTATIONS.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-teal-600">
+                            <ChevronDownIcon className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-span-8">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Full Name :
+                        </label>
                         <input
                           type="text"
-                          inputMode="decimal"
-                          value={feesBilledAmount}
-                          onChange={e => handleFeesBilledAmountChange(e.target.value)}
-                          onFocus={e => !isBilledAmountLocked && e.target.select()}
-                          readOnly={isBilledAmountLocked}
-                          className={`bg-transparent border-none p-0 w-full font-black text-slate-800 text-lg focus:ring-0 outline-none ${isBilledAmountLocked ? 'cursor-not-allowed' : ''}`}
-                          placeholder="0"
-                          title={isBilledAmountLocked ? 'Only admins can change the billed amount once set' : undefined}
+                          value={formData.userName || ''}
+                          onChange={e => handleFieldChange('userName', e.target.value)}
+                          placeholder="Student Name"
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
                         />
                       </div>
                     </div>
-                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <label className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Paid</label>
-                      <div className="mt-1 font-black text-emerald-700 text-lg">Rs {feesPaidAmount.toLocaleString()}</div>
+
+                    {/* Email + Phone */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Email :
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.userEmail || ''}
+                          onChange={e => handleFieldChange('userEmail', e.target.value)}
+                          placeholder="email@example.com"
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Phone :
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.phone || ''}
+                          onChange={e => handleFieldChange('phone', e.target.value)}
+                          placeholder="Phone number"
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
                     </div>
-                    <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                      <label className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Pending</label>
-                      <div className="mt-1 font-black text-red-700 text-lg">Rs {feesBalanceAmount.toLocaleString()}</div>
+
+                    {/* Register No + Year of Study */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Register No. :
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.reg_no || ''}
+                          onChange={e => handleFieldChange('reg_no', e.target.value)}
+                          placeholder="Register Number"
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Year of Study :
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 3rd Year"
+                          value={formData.year_of_study || ''}
+                          onChange={e => handleFieldChange('year_of_study', e.target.value)}
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* College */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                        College :
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.college || ''}
+                        onChange={e => handleFieldChange('college', e.target.value)}
+                        placeholder="College name"
+                        className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    {/* College Location + Department */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          College Location :
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.college_location || ''}
+                          onChange={e => handleFieldChange('college_location', e.target.value)}
+                          placeholder="City / Location"
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Department :
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.department || ''}
+                          onChange={e => handleFieldChange('department', e.target.value)}
+                          placeholder="Department"
+                          className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Degree */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                        Degree :
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.degree || ''}
+                        onChange={e => handleFieldChange('degree', e.target.value)}
+                        placeholder="e.g. B.Tech / BE"
+                        className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Internship Program */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                        Internship Program :
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.internship || ''}
+                        onChange={e => handleFieldChange('internship', e.target.value)}
+                        placeholder="Program Name"
+                        className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Workshop (Optional) */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                        Workshop (Optional) :
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. POWER BI"
+                        value={formData.workshop || ''}
+                        onChange={e => handleFieldChange('workshop', e.target.value)}
+                        className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Company */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                        Company :
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Appin Technology"
+                        value={formData.company || ''}
+                        onChange={e => handleFieldChange('company', e.target.value)}
+                        className="w-full bg-white dark:bg-slate-800 border border-teal-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Batch Leader Selection */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1.5 block">
+                        Batch Leader :
+                      </label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => { setIsLeader(false); setIsDirty(true); }}
+                          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-full transition-all text-xs font-bold ${
+                            !isLeader
+                              ? 'bg-teal-50 text-teal-800 border border-teal-300 shadow-2xs'
+                              : 'bg-white text-slate-400 border border-slate-200 hover:bg-teal-50/40 hover:text-teal-700 hover:border-teal-200 font-medium'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${!isLeader ? 'bg-teal-600' : 'bg-slate-300'}`} />
+                          Not Leader
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => { setIsLeader(prev => !prev); setIsDirty(true); }}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-full transition-all text-xs font-bold uppercase tracking-wider ${
+                            isLeader
+                              ? 'bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs'
+                              : 'bg-white text-slate-500 border border-slate-200 hover:bg-amber-50/50 hover:border-amber-200'
+                          }`}
+                        >
+                          <CrownIcon className={`w-3.5 h-3.5 ${isLeader ? 'text-amber-600' : 'text-slate-400'}`} />
+                          LEADER
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Batch Code + Generate Button */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                        Batch Code :
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            readOnly
+                            value={formData.batch_code || ''}
+                            className="w-full bg-white border border-teal-200/90 text-slate-900 font-mono font-bold text-xs rounded-xl py-2 px-3 pr-7 uppercase tracking-wider shadow-2xs"
+                          />
+                          <span className="w-2 h-2 rounded-full bg-teal-500 absolute right-2.5 top-3 animate-pulse" />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => copyBatchCode(formData.batch_code || '')}
+                          title="Copy batch code"
+                          className="p-2 rounded-xl border border-teal-200/90 bg-white hover:bg-teal-50 text-teal-700 transition-colors shadow-2xs"
+                        >
+                          <CopyIcon className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleGenerateBatch}
+                          disabled={generatingBatch}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50"
+                        >
+                          <RefreshIcon className={`w-3 h-3 ${generatingBatch ? 'animate-spin' : ''}`} />
+                          Generate
+                        </button>
+                      </div>
+                      <p className="text-[9.5px] text-teal-800/60 font-medium mt-1">
+                        Auto-generates from college name + start date (e.g. BATCH-KRP-04-25)
+                      </p>
+                    </div>
+
+                    {/* Dates Row */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Start Date :
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.start_date || ''}
+                          onChange={e => handleFieldChange('start_date', e.target.value)}
+                          className="w-full bg-white border border-teal-200/90 text-slate-900 font-semibold text-xs rounded-xl py-1.5 px-2 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          End Date :
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.end_date || ''}
+                          onChange={e => handleFieldChange('end_date', e.target.value)}
+                          className="w-full bg-white border border-teal-200/90 text-slate-900 font-semibold text-xs rounded-xl py-1.5 px-2 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1 block">
+                          Issue Date :
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.issue_date || ''}
+                          onChange={e => handleFieldChange('issue_date', e.target.value)}
+                          className="w-full bg-white border border-teal-200/90 text-slate-900 font-semibold text-xs rounded-xl py-1.5 px-2 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 transition-all shadow-2xs"
+                        />
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  {overdueInstallments.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-                      <Icons.X className="w-4 h-4 text-red-500" />
-                      <span className="text-xs font-bold text-red-700">
-                        {overdueInstallments.length} installment{overdueInstallments.length !== 1 ? 's are' : ' is'} overdue
-                      </span>
-                    </div>
-                  )}
+                {/* Bottom Action Buttons inside Details Tab */}
+                <div className="pt-1.5 space-y-2 shrink-0">
+                  <button
+                    onClick={handleSave}
+                    disabled={loading || !isDirty}
+                    className="w-full py-3 px-5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? <RefreshIcon className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {loading ? 'Saving Details...' : 'Save Certificate Details'}
+                  </button>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-700">Installments</h3>
-                        <p className="text-xs text-slate-500">
-                          {feesInstallments.length} total · {pendingInstallments.length} pending
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        {feesDirty && (
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="w-full py-3 px-5 bg-[#0f766e] hover:bg-[#115e59] text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {generating ? <RefreshIcon className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {generating ? 'Generating...' : 'Generate Certificates'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── CERTS TAB ── */}
+            {activeTab === 'certificates' && (
+              <div className="space-y-6">
+                <div className="flex justify-end">
+                  <button
+                    onClick={handlePrintAll}
+                    disabled={printingAll || generatedCerts.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50"
+                  >
+                    <PrinterIcon className="w-4 h-4" />
+                    Print All
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {generatedCerts.length === 0 ? (
+                    <p className="text-center text-slate-400 text-xs italic py-8 border border-dashed border-slate-200 rounded-2xl">
+                      No certificates generated yet.
+                    </p>
+                  ) : (
+                    generatedCerts.map((cert, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800">Certificate {idx + 1}</p>
+                            <p className="text-[9px] text-slate-400 truncate mt-0.5">{cert.fileName || 'certificate_document.pdf'}</p>
+                          </div>
+                        </div>
+                        {cert.s3?.url && (
                           <button
-                            onClick={handleCancelFees}
-                            className="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-all"
+                            onClick={() => window.open(cert.s3!.url, '_blank', 'noopener')}
+                            className="text-xs font-bold text-teal-700 hover:underline shrink-0"
                           >
-                            Cancel
+                            View
                           </button>
                         )}
-                        <button
-                          onClick={handleAddInstallment}
-                          className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700 transition-all"
-                        >
-                          + Add Installment
-                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── FEES TAB ── */}
+            {activeTab === 'fees' && (
+              <div className="space-y-6">
+                {/* Summary Progress Bars matching Course Enrolled / Image 2 */}
+                <div className="p-4 sm:p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-2.5 sm:space-y-3">
+                  {/* Row 1: Billed */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800 w-14 shrink-0">Billed</span>
+                    <span className="text-xs text-slate-400 font-normal shrink-0">( ₹ )</span>
+                    <div className="w-16 sm:w-20 shrink-0 flex items-center gap-1">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={feesBilledAmount}
+                        onChange={e => handleFeesBilledAmountChange(e.target.value)}
+                        onFocus={e => !isBilledAmountLocked && e.target.select()}
+                        readOnly={isBilledAmountLocked}
+                        className={`font-bold text-slate-900 text-base sm:text-lg tracking-tight bg-transparent border-none border-0 outline-none focus:outline-none focus:ring-0 focus:border-none p-0 m-0 w-full shadow-none ${isBilledAmountLocked ? 'cursor-not-allowed' : 'cursor-text'}`}
+                        style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                        placeholder="0"
+                        title={isBilledAmountLocked ? 'Only admins can change the billed amount once set' : 'Click to edit billed amount'}
+                      />
+                      {isBilledAmountLocked && (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-[70px]">
+                      <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                        <div className="bg-[#1d4ed8] h-full rounded-full w-full" />
                       </div>
                     </div>
+                  </div>
 
-                    <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-                      {feesInstallments.map((inst, index) => {
-                        const dueDateValue = parseDate(inst.dueDate);
-                        const isOverdue =
-                          inst.status === 'Pending' &&
-                          !!dueDateValue &&
-                          !Number.isNaN(new Date(dueDateValue).getTime()) &&
-                          new Date(dueDateValue) < new Date() &&
-                          inst.amount > 0;
+                  {/* Row 2: Paid */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800 w-14 shrink-0">Paid</span>
+                    <span className="text-xs text-slate-400 font-normal shrink-0">( ₹ )</span>
+                    <span className="font-bold text-slate-900 text-sm sm:text-base tracking-tight w-16 sm:w-20 shrink-0 truncate">
+                      {feesPaidAmount.toLocaleString('en-IN')}
+                    </span>
+                    <div className="flex-1 min-w-[70px]">
+                      <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className="bg-[#16a34a] h-full rounded-full transition-all duration-300"
+                          style={{ width: `${paidPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                        return (
-                          <div
-                            key={index}
-                            className={`p-3 rounded-xl border bg-white shadow-sm transition-colors group ${isOverdue ? 'border-red-300 bg-red-50/40' : 'border-slate-200 hover:border-emerald-200'}`}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
-                                {isOverdue && (
-                                  <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded">
-                                    Overdue
-                                  </span>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => handleDeleteInstallment(index)}
-                                className="text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                              >
-                                <Icons.Trash className="w-3.5 h-3.5" />
-                              </button>
+                  {/* Row 3: Pending */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800 w-14 shrink-0">Pending</span>
+                    <span className="text-xs text-slate-400 font-normal shrink-0">( ₹ )</span>
+                    <span className="font-bold text-slate-900 text-sm sm:text-base tracking-tight w-16 sm:w-20 shrink-0 truncate">
+                      {feesBalanceAmount.toLocaleString('en-IN')}
+                    </span>
+                    <div className="flex-1 min-w-[70px]">
+                      <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className="bg-[#dc2626] h-full rounded-full transition-all duration-300"
+                          style={{ width: `${pendingPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Installments Header + Button */}
+                <div className="flex items-center justify-between pt-1">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800 tracking-tight">Installments details</h3>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      {feesInstallments.length} Total · {pendingInstallments.length} Pending
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAddInstallment}
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-full shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    + Add Installment
+                  </button>
+                </div>
+
+                {/* Installment List */}
+                <div className="space-y-4">
+                  {feesInstallments.length === 0 ? (
+                    <p className="text-center text-slate-400 text-xs italic py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      No installments added yet. Click "+ Add Installment" above.
+                    </p>
+                  ) : (
+                    feesInstallments.map((inst, index) => {
+                      const installmentLabel =
+                        index === 0 ? '1st Installment' : index === 1 ? '2nd Installment' : index === 2 ? '3rd Installment' : `${index + 1}th Installment`;
+
+                      return (
+                        <div
+                          key={index}
+                          className="p-5 rounded-3xl border border-teal-100/70 bg-white shadow-xs space-y-4 relative hover:border-teal-200 transition-colors"
+                        >
+                          {/* Title & Delete */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900 underline underline-offset-4 decoration-slate-300">
+                              {installmentLabel}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteInstallment(index)}
+                              className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                              title="Delete installment"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {/* Due Date Row */}
+                          <div className="flex items-center justify-between gap-4">
+                            <label className="text-xs font-semibold text-slate-700">Due Date:</label>
+                            <div className="relative flex-1 max-w-[200px]">
+                              <input
+                                type="date"
+                                value={inst.dueDate ? (parseDate(inst.dueDate) || '') : ''}
+                                onChange={e => handleInstallmentChange(index, 'dueDate', e.target.value)}
+                                className="w-full text-right pr-3 pl-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:border-teal-600 transition-colors"
+                              />
                             </div>
+                          </div>
 
-                            <div className="grid grid-cols-2 gap-3 mb-2">
-                              <div>
-                                <label className="block text-[10px] text-slate-400 mb-0.5">Due Date</label>
-                                <input
-                                  type="date"
-                                  value={parseDate(inst.dueDate)}
-                                  onChange={e => handleInstallmentChange(index, 'dueDate', e.target.value)}
-                                  className="w-full text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 py-2 px-2 outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] text-slate-400 mb-0.5">Amount</label>
-                                <input
-                                  type="number"
-                                  value={inst.amount}
-                                  onChange={e => handleInstallmentChange(index, 'amount', Number(e.target.value))}
-                                  className="w-full text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 py-2 px-2 outline-none"
-                                />
-                              </div>
+                          {/* Amount Row */}
+                          <div className="flex items-center justify-between gap-4">
+                            <label className="text-xs font-semibold text-slate-700">Amount:</label>
+                            <div className="relative flex-1 max-w-[200px]">
+                              <input
+                                type="text"
+                                value={inst.amount.toLocaleString('en-IN')}
+                                onChange={e => handleInstallmentChange(index, 'amount', Number(e.target.value.replace(/,/g, '')))}
+                                className="w-full text-right pr-8 pl-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:border-teal-600 transition-colors"
+                              />
+                              <span className="text-xs font-bold text-teal-600 absolute right-3 top-2.5 pointer-events-none">₹</span>
                             </div>
+                          </div>
 
-                            <div>
-                              <label className="block text-[10px] text-slate-400 mb-0.5">Status</label>
+                          {/* Status Row */}
+                          <div className="flex items-center justify-between gap-4">
+                            <label className="text-xs font-semibold text-slate-700">Status:</label>
+                            <div className="w-1/2 flex justify-end">
                               <select
                                 value={inst.status}
-                                onChange={e => handleInstallmentChange(index, 'status', e.target.value as Installment['status'])}
-                                className={`w-full text-xs font-bold py-2 px-2 rounded-lg border outline-none focus:ring-1 ${inst.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-500' : 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-500'}`}
+                                onChange={e => handleInstallmentChange(index, 'status', e.target.value)}
+                                className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold outline-none transition-colors ${
+                                  inst.status === 'Paid'
+                                    ? 'border-teal-300 text-teal-700 bg-teal-50'
+                                    : 'border-amber-300 text-amber-700 bg-amber-50'
+                                }`}
                               >
                                 <option value="Pending">Pending</option>
                                 <option value="Paid">Paid</option>
                               </select>
                             </div>
-
-                            <div className="mt-2 flex items-center justify-between gap-2">
-                              {inst.billGenerated ? (
-                                inst.billUrl ? (
-                                  <a
-                                    onClick={e => e.stopPropagation()}
-                                    href={inst.billUrl}
-                                    target="_blank"
-                                    rel="noopener"
-                                    className="text-xs text-indigo-600 font-bold"
-                                  >
-                                    View Bill
-                                  </a>
-                                ) : (
-                                  <span className="text-xs text-slate-500">Bill generated</span>
-                                )
-                              ) : inst.status === 'Paid' ? (
-                                <button
-                                  onClick={e => { e.stopPropagation(); handleGenerateBill(index); }}
-                                  disabled={feesGeneratingIndex === index}
-                                  className={`text-xs px-2.5 py-1.5 rounded-lg font-bold transition-all ${feesGeneratingIndex === index ? 'bg-slate-300 text-slate-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
-                                >
-                                  {feesGeneratingIndex === index ? 'Generating...' : 'Generate Bill'}
-                                </button>
-                              ) : (
-                                <span className="text-xs text-slate-400">Bill available after payment</span>
-                              )}
-
-                              {inst.billGenerated && inst.billGeneratedAt && (
-                                <div className="text-[10px] text-slate-400">
-                                  {formatFeesDateTime(inst.billGeneratedAt)}
-                                </div>
-                              )}
-                            </div>
                           </div>
-                        );
-                      })}
 
-                      {feesInstallments.length === 0 && (
-                        <div className="text-center py-8 text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                          No installments added yet. Click "Add Installment" to create one.
+                          {/* View Bill Button */}
+                          <div className="pt-2">
+                            <button
+                              onClick={() => handleGenerateBill(index)}
+                              disabled={feesGeneratingIndex === index}
+                              className="py-2.5 px-6 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 flex items-center gap-2"
+                            >
+                              {feesGeneratingIndex === index ? <RefreshIcon className="w-3.5 h-3.5 animate-spin" /> : null}
+                              {feesGeneratingIndex === index ? 'Generating...' : 'View Bill'}
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      );
+                    })
+                  )}
                 </div>
-              )}
 
-              {/* ── Lead Details tab ── */}
-              {activeTab === 'lead' && (
-                <div className="space-y-5">
-                  {/* Edit + Delete actions */}
-                  <div className="flex gap-2">
+                {/* Save Fees Button */}
+                {feesDirty ? (
+                  <button
+                    onClick={handleSaveFees}
+                    disabled={feesLoading}
+                    style={{ color: '#ffffff' }}
+                    className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white !text-white font-bold text-sm rounded-2xl shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {feesLoading ? <RefreshIcon className="w-4 h-4 animate-spin text-white" /> : null}
+                    <span className="text-white !text-white font-bold">{feesLoading ? 'Saving Fees...' : 'Save Fees'}</span>
+                  </button>
+                ) : (
+                  <p className="text-center text-xs text-slate-400 py-2">All changes are saved</p>
+                )}
+              </div>
+            )}
+
+            {/* ── LEAD DETAILS TAB ── */}
+            {activeTab === 'lead' && (
+              <div className="space-y-4">
+                {/* Actions: Edit Lead & Delete Lead */}
+                <div className="flex gap-2.5">
+                  <button
+                    onClick={() => onEditLead?.(selectedLead)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-xl text-xs font-bold transition-all shadow-xs"
+                  >
+                    <EditIcon className="w-3.5 h-3.5" /> Edit Lead
+                  </button>
+                  {currentUserRole === 'admin' && (
                     <button
-                      onClick={() => onEditLead?.(selectedLead)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-black hover:bg-slate-200 transition-all"
+                      onClick={() => { if (!window.confirm('Delete this lead permanently?')) return; onDeleteLead?.(selectedLead._id); setSelectedLeadId(null); }}
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-all"
                     >
-                      <Icons.Edit className="w-3.5 h-3.5" /> Edit Lead
+                      <TrashIcon className="w-3.5 h-3.5" /> Delete
                     </button>
-                    {currentUserRole === 'admin' && (
-                      <button
-                        onClick={() => { if (!window.confirm('Delete this lead permanently?')) return; onDeleteLead?.(selectedLead._id); setSelectedLeadId(null); }}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-all"
-                      >
-                        <Icons.Trash className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    )}
-                  </div>
+                  )}
+                </div>
 
-                  {/* Status + Pipeline */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className={labelClass}>Status</label>
+                {/* Status & Pipeline */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1.5 block">STATUS</label>
+                    <div className="relative">
                       <select
                         value={selectedLead.status}
                         onChange={e => handleStatusChange(e.target.value)}
                         disabled={leadLoading}
-                        className={fieldClass}
+                        className="w-full bg-white border border-teal-200/90 text-slate-900 font-semibold text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-teal-600 appearance-none pr-8 cursor-pointer transition-colors"
                       >
                         <option value="Hot">Hot</option>
                         <option value="Warm">Warm</option>
                         <option value="Cold">Cold</option>
                       </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelClass}>Pipeline</label>
-                      <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-bold">
-                        {selectedLead.pipeline || 'N/A'}
-                      </div>
+                      <ChevronDownIcon className="w-3.5 h-3.5 text-teal-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1.5 block">PIPELINE</label>
+                    <div className="w-full bg-[#f0fdfa] border border-teal-100/90 text-teal-800 font-semibold text-xs rounded-xl py-2.5 px-3">
+                      {selectedLead.pipeline || 'Enrolled'}
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Assigned To */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Assigned To</label>
-                    {currentUserRole === 'admin' ? (
+                {/* Assigned To */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1.5 block">ASSIGNED TO</label>
+                  {currentUserRole === 'admin' ? (
+                    <div className="relative">
                       <select
                         value={selectedLead.assignedto || ''}
                         onChange={e => handleAssign(e.target.value)}
                         disabled={leadLoading}
-                        className={fieldClass}
+                        className="w-full bg-white border border-teal-200/90 text-slate-900 font-semibold text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-teal-600 appearance-none pr-8 cursor-pointer transition-colors"
                       >
                         <option value="">Unassigned</option>
                         {users.map(u => <option key={u.username} value={u.username}>{u.username}</option>)}
                       </select>
-                    ) : (
-                      <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700">
-                        {selectedLead.assignedto || <span className="text-slate-400 italic">Unassigned</span>}
-                      </div>
-                    )}
-                  </div>
+                      <ChevronDownIcon className="w-3.5 h-3.5 text-teal-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="w-full bg-[#f0fdfa] border border-teal-100/90 text-teal-800 font-semibold text-xs rounded-xl py-2.5 px-3">
+                      {selectedLead.assignedto || <span className="text-slate-400 italic">Unassigned</span>}
+                    </div>
+                  )}
+                </div>
 
-                  {/* Course + Source + Program */}
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5">
-                    <div>
-                      <p className={labelClass}>Course</p>
-                      <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedLead.course || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className={labelClass}>Source</p>
-                      <p className="text-sm text-slate-600 mt-0.5">{selectedLead.leadfrom || 'Manual'}</p>
-                    </div>
-                    {selectedLead.programType && (
+                {/* Unified Lead Information Card matching Internship Theme */}
+                <div className="bg-[#f0fdfa] dark:bg-slate-950/70 border border-teal-100/90 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+                  <h4 className="text-base font-bold text-slate-900 mb-4">Lead Information</h4>
+
+                  <div className="space-y-4">
+                    {/* Row 1: COURSE & SOURCE */}
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className={labelClass}>Program Type</p>
-                        <p className="text-sm text-slate-600 mt-0.5">{selectedLead.programType}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1">COURSE</p>
+                        <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                          {selectedLead.course || 'College Internship'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1">SOURCE</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.leadfrom || 'Website'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 2: PROGRAM TYPE & PROFESSION */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1">PROGRAM TYPE</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.programType || '2 Hours'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1">PROFESSION</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.profession || 'Job Seeker'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedLead.referredBy && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 mb-1">REFERRED BY</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.referredBy}
+                        </span>
                       </div>
                     )}
-                  </div>
 
-                  {/* Date Scheduled */}
-                  <div className="space-y-1">
-                    <label className={labelClass}>Date Scheduled</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={dateScheduled}
-                        onChange={e => setDateScheduled(e.target.value)}
-                        disabled={leadLoading}
-                        className={fieldClass}
-                      />
-                      <button
-                        onClick={handleDateScheduledSave}
-                        disabled={leadLoading}
-                        className="flex-shrink-0 px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                      >
-                        Save
-                      </button>
+                    {/* Date Scheduled */}
+                    <div className="space-y-1 pt-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70 dark:text-teal-400 mb-1 block">Date Scheduled</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="date"
+                          value={dateScheduled}
+                          onChange={e => setDateScheduled(e.target.value)}
+                          disabled={leadLoading}
+                          className="w-full bg-white dark:bg-slate-900 border border-teal-200/90 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-semibold text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-teal-600"
+                        />
+                        <button
+                          onClick={handleDateScheduledSave}
+                          disabled={leadLoading}
+                          className="flex-shrink-0 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Remarks */}
-                  <div className="space-y-3">
-                    <p className={labelClass}>Remarks ({(selectedLead.remarks || []).length})</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Add a remark..."
-                        value={newRemark}
-                        onChange={e => setNewRemark(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAddRemark(); }}
-                        disabled={leadLoading}
-                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                      <button
-                        onClick={handleAddRemark}
-                        disabled={!newRemark.trim() || leadLoading}
-                        className="flex-shrink-0 p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                      >
-                        <Icons.Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-0.5">
-                      {(selectedLead.remarks || []).length === 0 ? (
-                        <p className="text-center text-slate-400 text-xs italic py-6">No remarks yet</p>
-                      ) : (
-                        [...(selectedLead.remarks || [])].reverse().map(r => (
-                          <div key={r._id} className="group p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between gap-3 items-start">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-slate-700 leading-normal">{r.remark}</p>
-                              <p className="text-[9px] text-slate-400 mt-1 font-bold">
-                                {formatRemarkDate(r.timestamp)}{r.addedBy ? ` · ${r.addedBy}` : ''}
-                              </p>
-                            </div>
+                {/* Remarks Section */}
+                <div className="space-y-3 pt-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70">
+                    Remarks ({(selectedLead.remarks || []).length})
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add a remark..."
+                      value={newRemark}
+                      onChange={e => setNewRemark(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleAddRemark(); }}
+                      disabled={leadLoading}
+                      className="flex-1 px-3.5 py-2.5 bg-white border border-teal-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none focus:border-teal-600 transition-colors"
+                    />
+                    <button
+                      onClick={handleAddRemark}
+                      disabled={!newRemark.trim() || leadLoading}
+                      className="w-9 h-9 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-colors flex items-center justify-center shadow-xs disabled:opacity-50 shrink-0"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {(selectedLead.remarks || []).length === 0 ? (
+                      <p className="text-center text-slate-400 text-xs italic py-6">No remarks yet</p>
+                    ) : (
+                      [...(selectedLead.remarks || [])].reverse().map(r => (
+                        <div key={r._id} className="group p-3 bg-[#f0fdfa] dark:bg-slate-900/60 rounded-2xl border border-teal-100/80 dark:border-slate-800 flex justify-between gap-3 items-center">
+                          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 leading-normal flex-1">{r.remark}</p>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[9px] text-teal-700/60 dark:text-teal-400 font-bold">
+                              {formatRemarkDate(r.timestamp)}{r.addedBy ? ' · ' + r.addedBy : ''}
+                            </span>
                             <button
                               onClick={() => handleDeleteRemark(r._id)}
                               disabled={leadLoading}
-                              className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                              className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                              title="Delete remark"
                             >
-                              <Icons.Trash className="w-3.5 h-3.5" />
+                              <TrashIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── History tab ── */}
-              {activeTab === 'history' && (
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <p className={labelClass}>Campaign History ({(selectedLead.campaignHistory || []).length})</p>
-                    {(selectedLead.campaignHistory || []).length === 0 ? (
-                      <p className="text-center text-slate-400 text-xs italic py-6">No campaign messages sent yet</p>
-                    ) : (
-                      <div className="space-y-2 max-h-96 overflow-y-auto pr-0.5">
-                        {[...(selectedLead.campaignHistory || [])].reverse().map((c, i) => (
-                          <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-black text-slate-800 truncate">{c.campaignName}</p>
-                              {c.repliedAt ? (
-                                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-green-100 text-green-700">Replied</span>
-                              ) : (
-                                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-200 text-slate-500">No reply yet</span>
-                              )}
-                            </div>
-                            <p className="text-[9px] text-slate-400 mt-1 font-bold">
-                              Sent {formatRemarkDate(c.sentAt)}{c.repliedAt ? ` · Replied ${formatRemarkDate(c.repliedAt)}` : ''}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className={labelClass}>Conversation History ({(selectedLead.conversations || []).length})</p>
-                    {(selectedLead.conversations || []).length === 0 ? (
-                      <p className="text-center text-slate-400 text-xs italic py-6">No conversation history found</p>
-                    ) : (
-                      <div className="space-y-4 max-h-96 overflow-y-auto pr-0.5">
-                        {chatTimeline.map((group) => (
-                          <div key={group.dayKey} className="space-y-3">
-                            <div className="flex justify-center">
-                              <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-100 uppercase tracking-wide">
-                                {group.dayLabel}
-                              </span>
-                            </div>
-                            {group.items.map((c, i) => {
-                              const msgDate = toDateObjectChat(c.timestamp);
-                              const timeLabel = formatChatTime(msgDate);
-                              return (
-                                <div key={`${group.dayKey}-${i}`} className="space-y-2">
-                                  <div className="flex flex-col items-end">
-                                    <div className="bg-emerald-600 text-white p-2.5 rounded-2xl rounded-tr-none text-xs max-w-[90%] shadow-sm leading-relaxed">
-                                      {c.userMsg}
-                                      {timeLabel && <div className="text-[9px] text-emerald-100 mt-1 text-right">{timeLabel}</div>}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-start">
-                                    <div className="bg-slate-100 text-slate-700 p-2.5 rounded-2xl rounded-tl-none text-xs max-w-[90%] border border-slate-200 shadow-sm leading-relaxed">
-                                      {(c.botReply || '').split('\n').map((l, j) => <p key={j} className="mb-1 last:mb-0">{l}</p>)}
-                                      {timeLabel && <div className="text-[9px] text-slate-400 mt-1 text-right">{timeLabel}</div>}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))
                     )}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* ── Certificates tab ── */}
-              {activeTab === 'certificates' && (
-                <div className="space-y-4">
-                  {generatedCerts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                      <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                        <Icons.Settings className="w-8 h-8 opacity-30" />
-                      </div>
-                      <p className="text-sm font-bold text-slate-600">No certificates generated yet</p>
-                      <p className="text-xs text-slate-400 mt-1">Save details first, then click Generate.</p>
-                    </div>
+            {/* ── HISTORY TAB ── */}
+            {activeTab === 'history' && (
+              <div className="space-y-5">
+                {/* Campaign History Section */}
+                <div className="space-y-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70">
+                    Campaign History ({(selectedLead.campaignHistory || []).length})
+                  </p>
+                  {(selectedLead.campaignHistory || []).length === 0 ? (
+                    <p className="text-center text-slate-400 text-xs italic py-4 bg-teal-50/40 rounded-2xl border border-dashed border-teal-200/60">
+                      No campaign message sent yet.
+                    </p>
                   ) : (
-                    <>
-                      <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                        <Icons.Check className="w-4 h-4 text-emerald-600" />
-                        <p className="text-xs font-bold text-emerald-700">
-                          {generatedCerts.filter(c => c.success).length} certificate{generatedCerts.filter(c => c.success).length !== 1 ? 's' : ''} generated successfully
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        {generatedCerts.map((cert, idx) => (
-                          <div
-                            key={idx}
-                            className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${cert.success ? 'bg-white border-slate-200' : 'bg-red-50 border-red-100'}`}
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cert.success ? 'bg-emerald-50 text-emerald-600' : 'bg-red-100 text-red-500'}`}>
-                                {cert.success ? (
-                                  <Icons.Check className="w-4 h-4" />
-                                ) : (
-                                  <Icons.X className="w-4 h-4" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-700">{cert.title ? toTitleLabel(cert.title) : `Certificate ${idx + 1}`}</p>
-                                <p className="text-[10px] text-slate-400 truncate">{cert.fileName}</p>
-                              </div>
-                            </div>
-                            {cert.success && cert.s3?.url && (
-                              <button
-                                onClick={() => window.open(cert.s3!.url, '_blank', 'noopener')}
-                                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-black rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
-                              >
-                                <Icons.Plus className="w-3 h-3 rotate-45" />
-                                Open
-                              </button>
+                    <div className="space-y-2">
+                      {[...(selectedLead.campaignHistory || [])].reverse().map((c, i) => (
+                        <div key={i} className="p-3.5 bg-teal-50/60 hover:bg-teal-50 rounded-2xl border border-teal-100/70 transition-colors">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-bold text-slate-800 truncate">{c.campaignName}</p>
+                            {c.repliedAt ? (
+                              <span className="flex-shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase bg-teal-100 text-teal-700">
+                                Replied
+                              </span>
+                            ) : (
+                              <span className="flex-shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase bg-slate-200 text-slate-600">
+                                No reply yet
+                              </span>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    </>
+                          <p className="text-[9px] text-slate-400 mt-1 font-semibold">
+                            Sent {formatRemarkDate(c.sentAt)}{c.repliedAt ? ` · Replied ${formatRemarkDate(c.repliedAt)}` : ''}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Panel footer actions */}
-            <div className="p-5 border-t border-slate-100 bg-slate-50/50 shrink-0 space-y-2">
-              {activeTab === 'details' && (
-                <button
-                  onClick={handleSave}
-                  disabled={loading || !isDirty}
-                  className="w-full py-3 bg-emerald-600 text-white rounded-xl text-sm font-black uppercase tracking-wider hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md shadow-emerald-100 flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <><Icons.RefreshCcw className="w-4 h-4 animate-spin" /> Saving...</>
-                  ) : (
-                    'Save Certificate Details'
-                  )}
-                </button>
-              )}
+                {/* Conversation History Section (Extended freely below) */}
+                <div className="space-y-2.5 pb-6">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-teal-900/70">
+                    Conversation History ({(selectedLead.conversations || []).length})
+                  </p>
 
-              {(activeTab === 'details' || activeTab === 'certificates') && (
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating || isDirty}
-                  title={isDirty ? 'Save details first before generating' : ''}
-                  className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-black uppercase tracking-wider hover:bg-indigo-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md shadow-indigo-100 flex items-center justify-center gap-2"
-                >
-                  {generating ? (
-                    <><Icons.RefreshCcw className="w-4 h-4 animate-spin" /> Generating...</>
-                  ) : (
-                    'Generate Certificates'
-                  )}
-                </button>
-              )}
-
-              {activeTab === 'fees' && (
-                <>
-                  <button
-                    onClick={handleSaveFees}
-                    disabled={feesLoading || !feesDirty}
-                    className="w-full py-3 bg-emerald-600 text-white rounded-xl text-sm font-black uppercase tracking-wider hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md shadow-emerald-100 flex items-center justify-center gap-2"
-                  >
-                    {feesLoading ? (
-                      <><Icons.RefreshCcw className="w-4 h-4 animate-spin" /> Saving...</>
-                    ) : (
-                      'Save Fees'
-                    )}
-                  </button>
-                  {feesDirty && (
-                    <p className="text-[10px] text-center text-amber-500 font-bold">
-                      Save fees changes to keep installments updated
+                  {(selectedLead.conversations || []).length === 0 ? (
+                    <p className="text-center text-slate-400 text-xs italic py-6 bg-teal-50/40 rounded-2xl border border-dashed border-teal-200/60">
+                      No conversation history found
                     </p>
-                  )}
-                </>
-              )}
+                  ) : (
+                    <div className="p-4 sm:p-5 bg-[#f0fdfa]/70 dark:bg-slate-950/70 border border-teal-100/90 dark:border-slate-800 rounded-3xl space-y-4 shadow-xs">
+                      {chatTimeline.map((group) => (
+                        <div key={group.dayKey} className="space-y-3">
+                          <div className="flex justify-center sticky top-0 z-10 py-0.5">
+                            <span className="px-3.5 py-1 rounded-full bg-white/95 dark:bg-slate-800 text-amber-700 dark:text-amber-300 text-[10px] font-bold border border-amber-200/80 dark:border-amber-700/50 uppercase tracking-wider shadow-2xs">
+                              {group.dayLabel}
+                            </span>
+                          </div>
 
-              {isDirty && activeTab === 'details' && (
-                <p className="text-[10px] text-center text-amber-500 font-bold">
-                  Save details before generating certificates
-                </p>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+                          {group.items.map((c, i) => {
+                            const msgDate = toDateObjectChat(c.timestamp);
+                            const timeLabel = formatChatTime(msgDate);
+
+                            return (
+                              <div key={`${group.dayKey}-${i}`} className="space-y-2">
+                                {c.userMsg && (
+                                  <div className="flex flex-col items-end">
+                                    <div className="bg-teal-600 text-white p-3.5 rounded-2xl rounded-tr-none text-xs max-w-[85%] shadow-xs leading-relaxed font-medium">
+                                      <p>{c.userMsg}</p>
+                                      {timeLabel && (
+                                        <div className="text-[9px] text-teal-100 mt-1.5 text-right font-normal">
+                                          {timeLabel}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {c.botReply && (
+                                  <div className="flex flex-col items-start">
+                                    <div className="bg-white text-slate-800 p-3.5 rounded-2xl rounded-tl-none text-xs max-w-[85%] border border-teal-100/90 shadow-xs leading-relaxed font-medium">
+                                      {(c.botReply || '').split('\n').map((line, j) => (
+                                        <p key={j} className="mb-1 last:mb-0">{line}</p>
+                                      ))}
+                                      {timeLabel && (
+                                        <div className="text-[9px] text-slate-400 mt-1.5 text-right font-normal">
+                                          {timeLabel}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <MessageModal
         isOpen={isMessageModalOpen}

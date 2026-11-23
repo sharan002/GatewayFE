@@ -308,12 +308,12 @@ const UserManagementView: React.FC = () => {
               <table className="w-full min-w-[640px]">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left">User</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left hidden sm:table-cell">Email</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left hidden md:table-cell">Phone</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left">Role</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-left">Branch</th>
-                    <th className="px-6 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    <th className="px-6 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-left">User</th>
+                    <th className="px-6 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-left hidden sm:table-cell">Email</th>
+                    <th className="px-6 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-left hidden md:table-cell">Phone</th>
+                    <th className="px-6 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-left">Role</th>
+                    <th className="px-6 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-left">Branch</th>
+                    <th className="px-6 py-3 text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

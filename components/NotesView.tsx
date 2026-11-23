@@ -300,7 +300,7 @@ const NotesView: React.FC<NotesViewProps> = ({ currentUser }) => {
         {/* Header */}
         <div className="flex items-start justify-between mb-5 gap-4 flex-wrap">
           <div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight">Notes & Sheet</h3>
+            <h3 className="text-xl font-bold text-slate-800 tracking-tight">Notes & Sheet</h3>
             <p className="text-sm text-slate-500">
               Auto-saved locally on this device (IndexedDB).
               {loadedFileName && activeTab === 'sheet' && (
@@ -357,7 +357,7 @@ const NotesView: React.FC<NotesViewProps> = ({ currentUser }) => {
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-2 p-3 border-b border-slate-100 bg-slate-50">
-              <button onClick={addRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 transition-colors">
+              <button onClick={addRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-700 text-white  text-xs font-bold rounded-lg  transition-colors">
                 <Icons.Plus className="w-3.5 h-3.5" /> Add Row
               </button>
               <button onClick={addColumn} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 text-white text-xs font-bold rounded-lg hover:bg-slate-700 transition-colors">

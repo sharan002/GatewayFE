@@ -608,3 +608,85 @@ export interface GA4EngagementOverviewResponse {
   };
   rows: GA4EngagementRow[];
 }
+
+export interface WhatsAppBillingSummaryResponse {
+  success: boolean;
+  dateRange: { startDate: string; endDate: string };
+  account: { name: string; currency: string };
+  totals: { cost: number; volume: number; billableVolume: number; avgCostPerBillable: number };
+  byCategory: { category: string; pricingType: string; volume: number; cost: number }[];
+  daily: { date: string; volume: number; cost: number }[];
+}
+
+export interface WhatsAppTemplateUsageRow {
+  id: string;
+  name: string;
+  language: string;
+  category: string;
+  status: string;
+  sent: number;
+  delivered: number;
+  read: number;
+  cost: number;
+}
+
+export interface WhatsAppTemplateUsageResponse {
+  success: boolean;
+  dateRange: { startDate: string; endDate: string };
+  analyticsError: string;
+  rows: WhatsAppTemplateUsageRow[];
+}
+
+export function normalizeLeadSource(source: string | null | undefined): string {
+  if (!source) return 'Unknown';
+  const trimmed = String(source).trim();
+  if (!trimmed) return 'Unknown';
+
+  const lower = trimmed.toLowerCase().replace(/[\s\-_]+/g, '');
+
+  if (lower === 'whatsapp') return 'WhatsApp';
+  if (lower === 'metaads' || lower === 'meta' || lower === 'facebook' || lower === 'fb' || lower === 'fbads') return 'Meta Ads';
+  if (lower === 'googleads' || lower === 'google' || lower === 'adwords') return 'Google Ads';
+  if (lower === 'walkin') return 'Walk-in';
+  if (lower === 'website' || lower === 'web') return 'Website';
+  if (lower === 'call' || lower === 'calls' || lower === 'phone' || lower === 'incomingcall') return 'Call';
+  if (lower === 'referral' || lower === 'refer') return 'Referral';
+  if (lower === 'bulkmessage' || lower === 'bulkmsg' || lower === 'bulk') return 'Bulk Message';
+
+  return trimmed;
+}
+
+export function expandSourceAliases(sources: string[]): string[] {
+  if (!Array.isArray(sources)) return [];
+  const result = new Set<string>();
+  sources.forEach(s => {
+    const norm = normalizeLeadSource(s);
+    if (norm === 'WhatsApp') {
+      result.add('WhatsApp');
+      result.add('Whatsapp');
+      result.add('whatsapp');
+    } else if (norm === 'Meta Ads') {
+      result.add('Meta Ads');
+      result.add('metaads');
+      result.add('Meta ads');
+      result.add('meta ads');
+    } else if (norm === 'Walk-in') {
+      result.add('Walk-in');
+      result.add('Walkin');
+      result.add('walk-in');
+      result.add('walkin');
+    } else if (norm === 'Google Ads') {
+      result.add('Google Ads');
+      result.add('Google ads');
+      result.add('googleads');
+    } else if (norm === 'Bulk Message') {
+      result.add('Bulk Message');
+      result.add('BulkMessage');
+      result.add('bulkmessage');
+    } else {
+      result.add(s);
+    }
+  });
+  return Array.from(result);
+}
+

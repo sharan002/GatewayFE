@@ -38,7 +38,7 @@ export const ReferralCodeChip: React.FC<ReferralCodeChipProps> = ({ code, onOpen
     <button
       onClick={(e) => { e.stopPropagation(); onOpen(); }}
       title="Click to see referral group"
-      className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tight border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${c.bg} ${c.border} ${c.text}`}
+      className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${c.bg} ${c.border} ${c.text}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {code}
@@ -78,7 +78,7 @@ export const ReferralGroupsPanel: React.FC<ReferralGroupsPanelProps> = ({ groups
     <div className="fixed inset-0 z-[55] flex items-start justify-center p-4 pt-24 bg-black/30 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-800">Referral Groups</h3>
+          <h3 className="text-base font-bold text-slate-800">Referral Groups</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400"><Icons.X className="w-4 h-4" /></button>
         </div>
         <div className="max-h-96 overflow-y-auto divide-y divide-slate-50 px-1 py-2">
@@ -125,7 +125,7 @@ export const ReferralGroupPopup: React.FC<ReferralGroupPopupProps> = ({ group, m
 
   const statusPill = (status: string) => {
     const s = (status || '').toLowerCase();
-    return s === 'hot' ? 'bg-red-100 text-red-700' : s === 'warm' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
+    return s === 'hot' ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300' : s === 'warm' ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300' : 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300';
   };
 
   return (
@@ -133,7 +133,7 @@ export const ReferralGroupPopup: React.FC<ReferralGroupPopupProps> = ({ group, m
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-slate-100 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase border ${c.bg} ${c.border} ${c.text}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${c.bg} ${c.border} ${c.text}`}>
               <span className={`w-2 h-2 rounded-full ${c.dot}`} />
               {group.code}
             </span>
@@ -161,11 +161,11 @@ export const ReferralGroupPopup: React.FC<ReferralGroupPopupProps> = ({ group, m
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold text-slate-800 truncate">{m.userName}</span>
                     {m.is_referral_leader ? (
-                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase bg-amber-100 text-amber-700" title="Referral Leader">
+                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase bg-amber-100 text-amber-700" title="Referral Leader">
                         <Icons.Crown className="w-2.5 h-2.5" /> Leader
                       </span>
                     ) : (
-                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase ${statusPill(m.status)}`}>{m.status}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase ${statusPill(m.status)}`}>{m.status}</span>
                     )}
                   </div>
                   <p className="text-[10px] text-slate-500 truncate">

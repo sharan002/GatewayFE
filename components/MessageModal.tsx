@@ -24,7 +24,7 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, recipientC
         <div className="p-6 space-y-4">
           <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
             <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Recipients</p>
-            <p className="text-sm font-black text-blue-900">{recipientCount} leads selected</p>
+            <p className="text-sm font-bold text-blue-900">{recipientCount} leads selected</p>
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase">Campaign Name (optional)</label>
@@ -59,7 +59,7 @@ const MessageModal: React.FC<MessageModalProps> = ({ isOpen, onClose, recipientC
           <button
             onClick={() => onSend(msg, campaignName.trim())}
             disabled={!msg.trim() || isSending}
-            className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-black rounded-lg hover:bg-blue-700 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             {isSending && <Icons.RefreshCcw className="w-4 h-4 animate-spin" />}
             <span>{isSending ? 'Sending...' : 'Send Message'}</span>

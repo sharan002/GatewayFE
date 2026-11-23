@@ -35,6 +35,11 @@ function batchColor(code: string): { bg: string; border: string; text: string; d
   return palette[hash % palette.length];
 }
 
+/** Match student profile avatars to the List button color with soft opacity. */
+function profileColor(_id: string): { bg: string; text: string } {
+  return { bg: 'bg-violet-100', text: 'text-violet-700 font-bold' };
+}
+
 function getFeesSummary(lead: Lead) {
   const inst = lead.fees?.installments ?? [];
   if (inst.length === 0) return null;
@@ -154,7 +159,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
 
   // ----- Derived state -----
 
-  // Server already filters — internalLeads is the current page of matching leads
   const filteredLeads = internalLeads;
 
   const hasActiveFilters = useMemo(() => {
@@ -272,14 +276,12 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     requestedTabRef.current = null;
   }, [selectedLeadId]);
 
-  // Keep fees in sync when lead updates externally (e.g. status changes)
   useEffect(() => {
     if (!selectedLead || feesDirty) return;
     setFeesBilledAmount(selectedLead.fees?.billedAmount?.toString() || '0');
     setFeesInstallments(selectedLead.fees?.installments || []);
   }, [selectedLead?.fees]);
 
-  // Fetch trainers once on mount
   useEffect(() => {
     setTrainersLoading(true);
     apiService.getTrainers()
@@ -288,7 +290,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
       .finally(() => setTrainersLoading(false));
   }, []);
 
-  // Fetch all distinct batch codes for the filter dropdown (always the full list)
   useEffect(() => {
     let mounted = true;
     apiService.getEnrolledBatches().then(list => {
@@ -297,7 +298,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     return () => { mounted = false; };
   }, []);
 
-  // Fetch known campaign names for the message modal dropdown
   useEffect(() => {
     let mounted = true;
     apiService.getCampaignNames().then(list => {
@@ -306,7 +306,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     return () => { mounted = false; };
   }, []);
 
-  // Core fetch: one page at a time from the server
   const fetchPage = async (page: number, query: string, currentFilters: FilterState) => {
     const requestId = ++internalRequestIdRef.current;
     setIsLoadingInternal(true);
@@ -342,25 +341,18 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     }
   };
 
-  // When search or filters change, reset to page 1 and fetch
   useEffect(() => {
     setCurrentPage(1);
     void fetchPage(1, searchQuery, filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters]);
 
-  // When page changes (not due to filter reset), fetch that page
   useEffect(() => {
     void fetchPage(currentPage, searchQuery, filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
-  // Exiting messaging mode (or a change of query) invalidates any prior selection
   useEffect(() => {
     setSelectedMsgIds(new Set());
   }, [searchQuery, filters]);
-
-  // ----- Messaging mode -----
 
   const toggleMsgSelection = (id: string) => {
     setSelectedMsgIds(prev => {
@@ -370,7 +362,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     });
   };
 
-  // Fetches every lead matching the current search/filters (not just the loaded page) in chunks
   const fetchAllMatchingLeadIds = async (query: string, currentFilters: FilterState): Promise<string[]> => {
     let page = 1;
     let total = 0;
@@ -438,8 +429,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     }
   };
 
-  // ----- Helpers -----
-
   const handleUpdateLead = (updated: Lead) => {
     setInternalLeads(prev => prev.map(l => l._id === updated._id ? updated : l));
     onUpdateLead(updated);
@@ -459,6 +448,15 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     return `${dd}/${mm}/${d.getFullYear()}`;
+  };
+
+  const formatDisplayMobile = (phone?: string | null): string => {
+    if (!phone) return '';
+    const cleaned = phone.trim();
+    const digits = cleaned.replace(/\D/g, '');
+    if (digits.length === 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+    if (digits.length === 12 && digits.startsWith('91')) return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    return cleaned;
   };
 
   const addMonthsToDateString = (dateStr: string, months: number): string => {
@@ -497,8 +495,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     setSelectedLeadId(leadId);
   };
 
-  // ----- Fees computed -----
-
   const feesPaidAmount = feesInstallments.filter(i => i.status === 'Paid').reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const feesBalanceAmount = Math.max((parseFloat(feesBilledAmount) || 0) - feesPaidAmount, 0);
   const pendingInstallments = feesInstallments.filter(i => i.status === 'Pending');
@@ -511,11 +507,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     return due < today;
   });
 
-  // Certificates can only be generated once billing is set up (billed amount > 0) and fully paid:
-  // no pending installments AND no outstanding balance (covers the case where billing is set but no installments/payments exist yet)
   const canGenerateCourseCert = (parseFloat(feesBilledAmount) || 0) > 0 && pendingInstallments.length === 0 && feesBalanceAmount === 0;
-
-  // ----- Batch actions -----
 
   const handleSaveBatch = async () => {
     if (!selectedLead) return;
@@ -613,12 +605,8 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     }
   };
 
-  // A batch code is only auto-generated when no existing code is selected; timings are required for that.
   const isGeneratingNewBatchCode = !batchForm.batchId || batchForm.batchId === '__new__';
 
-  // ----- Fees actions -----
-
-  // Billed amount is locked for non-admins once a value has been saved
   const isBilledAmountLocked =
     currentUserRole !== 'admin' && (selectedLead?.fees?.billedAmount ?? 0) > 0;
 
@@ -727,8 +715,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     }
   };
 
-  // ----- Lead tab actions -----
-
   const handleStatusChange = async (status: string) => {
     if (!selectedLead) return;
     try {
@@ -765,8 +751,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
       handleUpdateLead(updated);
     } catch { alert('Failed to delete remark'); } finally { setLeadLoading(false); }
   };
-
-  // ----- Certificate tab actions -----
 
   const handleCertFieldChange = (field: keyof CourseCertificateDetail, value: any) => {
     setCertForm(prev => ({ ...prev, [field]: value }));
@@ -829,8 +813,6 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
       setIsPrintingCert(false);
     }
   };
-
-  // ----- ID Card actions -----
 
   const handleIdCardFieldChange = (field: keyof IdCardDetail, value: any) => {
     if (field === 'validTill') {
@@ -917,116 +899,63 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
     setExpandedBatches(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   };
 
-  // ----- Pagination -----
-
   const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
   const paginatedLeads = internalLeads;
 
-  // ----- Styles -----
-
-  const fieldClass = 'w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all';
-  const labelClass = 'text-[10px] font-black text-slate-400 uppercase tracking-widest';
-
-  // ----- Render -----
+  const fieldClass = 'w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all';
+  const labelClass = 'text-[10px] font-bold text-slate-400 uppercase tracking-widest';
 
   return (
-    <div className="flex h-full bg-slate-50 overflow-hidden relative">
+    <div className="flex h-full overflow-hidden relative">
 
-      {/* ── Main panel ── */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${selectedLeadId ? 'md:mr-[480px]' : ''}`}>
+      {/* ── Main panel with spacing when popup is open ── */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${selectedLeadId ? 'md:mr-[calc(min(38vw,520px)-16px)]' : ''}`}>
 
-        {/* Header */}
-        <div className="p-6 pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+        {/* Sticky Header and Control Bar Container */}
+        <div className={`sticky top-0 z-20/95 backdrop-blur-md pt-6 pb-3 shadow-xs transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5' : 'px-6'}`}>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
             <div>
-              <h1 className="text-2xl font-black text-slate-800">Course Enrolled</h1>
+              <h1 className="text-xl font-bold text-slate-800">Course Enrolled</h1>
               <p className="text-slate-500 text-sm mt-0.5">
                 {totalLeads} student{totalLeads !== 1 ? 's' : ''} · Manage batch, trainer & fees
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === 'list' ? 'bg-green-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                  <Icons.Menu className="w-3.5 h-3.5" /> List
-                </button>
-                <button
-                  onClick={() => setViewMode('batch')}
-                  className={`px-3 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === 'batch' ? 'bg-green-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
-                >
-                  <Icons.User className="w-3.5 h-3.5" /> Batches
-                </button>
-              </div>
-              <div className="relative">
-                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-48 shadow-sm"
-                />
-              </div>
-              <button
-                onClick={() => setFilters(prev => ({ ...prev, statusFilter: prev.statusFilter === 'responded' ? null : 'responded' }))}
-                title="Show students who responded after a follow-up"
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold border transition-all shadow-sm ${filters.statusFilter === 'responded' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
-              >
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${filters.statusFilter === 'responded' ? 'bg-white' : 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]'}`} />
-                <span className="hidden sm:inline">Responded</span>
-              </button>
+          </div>
+
+          {/* Main view tabs & Action Buttons - flex-wrap md:flex-nowrap prevents line wrapping when sidebar opens */}
+          <div className="flex items-center justify-between gap-4 flex-wrap md:flex-nowrap w-full">
+            <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white p-1 max-w-full overflow-x-auto min-w-0 shrink-0">
+              <button onClick={() => setViewMode('list')} className={`flex items-center justify-center gap-2 min-w-[88px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${viewMode === 'list' && filters.statusFilter !== 'responded' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-700 hover:bg-violet-50'}`}><Icons.Menu className="w-4 h-4"/>List</button>
+              <button onClick={() => { setViewMode('batch'); setFilters(prev => ({...prev, statusFilter: null})); }} className={`flex items-center justify-center gap-2 min-w-[120px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${viewMode === 'batch' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-700 hover:bg-violet-50'}`}><Icons.User className="w-4 h-4"/>Active Batch</button>
+              {/* <button onClick={() => { setViewMode('batch'); setFilters(prev => ({...prev, statusFilter: null})); }} className="flex items-center justify-center gap-2 min-w-[150px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap text-slate-700 hover:bg-blue-50 transition-all"><Icons.Check className="w-4 h-4 text-blue-500"/>Completed Batch</button> */}
+              <button onClick={() => { setViewMode('list'); setFilters(prev => ({ ...prev, statusFilter: prev.statusFilter === 'responded' ? null : 'responded' })); }} className={`flex items-center justify-center gap-2 min-w-[110px] px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${filters.statusFilter === 'responded' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-700 hover:bg-violet-50'}`}><Icons.Check className="w-4 h-4"/>Responded</button>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 justify-end ml-auto">
               <button
                 onClick={() => setIsFilterOpen(true)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${hasActiveFilters ? 'bg-green-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}
+                className={`order-2 md:order-3 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap ${hasActiveFilters ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-700 border-blue-200 hover:bg-blue-50'}`}
               >
-                <Icons.Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">Filters</span>
+                <Icons.Filter className="w-4 h-4 text-blue-500" />
+                <span>Filters</span>
                 {hasActiveFilters && <span className="w-2 h-2 bg-white rounded-full animate-pulse" />}
               </button>
               {viewMode === 'list' && (
                 isMessagingMode ? (
-                  <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase mr-1">{selectedMsgIds.size} Selected</span>
-                    <button
-                      onClick={selectAllMatching}
-                      disabled={isSelectingAllMsg}
-                      className="px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200 disabled:opacity-50"
-                    >
-                      {isSelectingAllMsg ? 'Selecting…' : 'Select All'}
-                    </button>
+                  <div className="order-3 md:order-4 flex items-center gap-2 animate-in slide-in-from-right-2 flex-wrap whitespace-nowrap">
+                    <span className="text-xs font-bold text-slate-500 uppercase mr-1">{selectedMsgIds.size} Selected</span>
+                    <button onClick={selectAllMatching} disabled={isSelectingAllMsg} className="px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200 disabled:opacity-50">{isSelectingAllMsg ? 'Selecting…' : 'Select All'}</button>
                     <button onClick={uncheckAllMsg} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200">Clear</button>
-                    {selectedMsgIds.size > 0 && (
-                      <button onClick={() => setIsMessageModalOpen(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:shadow-lg active:scale-95 transition-all">
-                        <Icons.Send className="w-4 h-4" />
-                        <span className="hidden sm:inline">Send Message</span>
-                      </button>
-                    )}
+                    {selectedMsgIds.size > 0 && <button onClick={() => setIsMessageModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:shadow-lg active:scale-95 transition-all"><Icons.Send className="w-4 h-4" /><span>Send Message</span></button>}
                     <button onClick={exitMessagingMode} className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Exit Messaging Mode"><Icons.X className="w-5 h-5" /></button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setIsMessagingMode(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-bold text-sm transition-all border border-indigo-200"
-                  >
-                    <Icons.Send className="w-4 h-4" />
-                    <span className="hidden sm:inline">Messaging Mode</span>
+                  <button onClick={() => setIsMessagingMode(true)} className="order-3 md:order-4 flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 hover:bg-blue-50 rounded-xl font-semibold text-sm transition-all border border-blue-200 whitespace-nowrap">
+                    <Icons.Send className="w-4 h-4 text-blue-500" /><span>Message Mode</span>
                   </button>
                 )
               )}
             </div>
           </div>
-        </div>
-
-        {/* Summary chips */}
-        <div className="px-6 pb-3 flex gap-3 flex-wrap">
-          {viewMode === 'batch' && (
-            <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-2 shadow-sm">
-              <p className="text-[10px] font-black text-green-500 uppercase tracking-widest">Batches</p>
-              <p className="text-xl font-black text-green-700">{batchGroups.filter(([k]) => k !== '__none__').length}</p>
-            </div>
-          )}
         </div>
 
         {/* Filter drawer */}
@@ -1091,7 +1020,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
               </div>
               <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
                 <button onClick={() => setFilters(initialFilters)} className="flex-1 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg">Reset</button>
-                <button onClick={() => setIsFilterOpen(false)} className="flex-1 py-2 text-sm font-bold bg-green-600 text-white rounded-lg">Apply</button>
+                <button onClick={() => setIsFilterOpen(false)} className="flex-1 py-2 text-sm font-bold bg-blue-500 text-white rounded-lg">Apply</button>
               </div>
             </div>
           </div>
@@ -1099,15 +1028,15 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
 
         {/* ── List view ── */}
         {viewMode === 'list' && (
-          <div className="px-6 pb-6 flex-1 overflow-hidden">
+          <div className={`pb-6 flex-1 overflow-hidden transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5' : 'px-6'}`}>
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
-              <div className="overflow-auto flex-1">
+              <div className="overflow-auto flex-1 min-w-0 slim-scrollbar">
                 {isLoadingInternal && (
-                  <div className="px-5 py-2 bg-green-50 border-b border-green-100 text-xs text-green-600 font-bold flex items-center gap-1.5">
+                  <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-600 font-bold flex items-center gap-1.5">
                     <Icons.RefreshCcw className="w-3 h-3 animate-spin" /> Loading…
                   </div>
                 )}
-                <table className="w-full text-left border-collapse">
+                <table className="w-full min-w-[900px] text-left border-collapse">
                   <thead className="bg-slate-50 sticky top-0 z-10">
                     <tr>
                       {isMessagingMode && (
@@ -1115,13 +1044,13 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                           <Icons.Check className="w-4 h-4 text-slate-300 mx-auto" />
                         </th>
                       )}
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Student</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden sm:table-cell">Contact</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden md:table-cell">Course</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Batch</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden lg:table-cell">Trainer</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 text-center">Fees</th>
-                      <th className="px-5 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Action</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Student</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 hidden sm:table-cell">Contact</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 hidden md:table-cell">Course</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Batch</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 hidden lg:table-cell">Trainer</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 text-center">Fees</th>
+                      <th className="px-5 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1140,7 +1069,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                         return (
                           <tr
                             key={lead._id}
-                            className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedLeadId === lead._id ? 'bg-green-50/50' : ''} ${selectedMsgIds.has(lead._id) ? 'bg-indigo-50/40' : ''}`}
+                            className={`hover:bg-slate-100/70 dark:hover:bg-slate-700/40 transition-colors cursor-pointer ${selectedLeadId === lead._id ? 'selected-lead-row bg-blue-50/80 dark:bg-blue-600/20 shadow-[inset_4px_0_0_#3b82f6] dark:shadow-[inset_4px_0_0_#60a5fa]' : ''} ${selectedMsgIds.has(lead._id) ? 'bg-indigo-50/40 dark:bg-indigo-500/[0.08]' : ''}`}
                             onClick={() => openInEditMode(lead._id)}
                           >
                             {isMessagingMode && (
@@ -1155,7 +1084,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                             )}
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                <div className={`w-9 h-9 rounded-full ${profileColor(lead._id).bg} ${profileColor(lead._id).text} flex items-center justify-center font-bold text-sm flex-shrink-0`}>
                                   {(lead.userName || '?').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
@@ -1206,7 +1135,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                                       } catch { /* keep local */ }
                                     }}
                                     title="View batch members"
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border cursor-pointer hover:shadow-md active:scale-95 transition-all ${color.bg} ${color.border} ${color.text}`}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border cursor-pointer hover:shadow-md active:scale-95 transition-all ${color.bg} ${color.border} ${color.text}`}
                                   >
                                     <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
                                     {batchCode}
@@ -1214,7 +1143,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                                   <button
                                     onClick={e => { e.stopPropagation(); copyBatchCode(batchCode); }}
                                     title="Copy batch code"
-                                    className={`p-1 rounded transition-colors ${copiedCode === batchCode ? 'text-green-500 bg-green-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                                    className={`p-1 rounded transition-colors ${copiedCode === batchCode ? 'text-blue-500 bg-blue-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                                   >
                                     {copiedCode === batchCode ? <Icons.Check className="w-3 h-3" /> : <Icons.Copy className="w-3 h-3" />}
                                   </button>
@@ -1223,7 +1152,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                                 <button
                                   onClick={e => { e.stopPropagation(); openInEditMode(lead._id); }}
                                   title="Assign batch"
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-600 text-white text-[9px] font-black hover:bg-green-700 transition-all active:scale-95"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#8b5cf6] text-white text-[9px] font-bold hover:bg-violet-700 transition-all active:scale-95"
                                 >
                                   <Icons.Plus className="w-2.5 h-2.5" />
                                   Add
@@ -1248,7 +1177,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                                   return (
                                     <button
                                       onClick={e => { e.stopPropagation(); openFeesTab(lead._id); }}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-green-700 transition-all hover:shadow-sm active:scale-95"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#8b5cf6] text-white text-[10px] font-bold uppercase tracking-wide hover:bg-violet-700 transition-all hover:shadow-sm active:scale-95"
                                     >
                                       <Icons.Plus className="w-3 h-3" /> Add
                                     </button>
@@ -1257,12 +1186,12 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                                 return (
                                   <button
                                     onClick={e => { e.stopPropagation(); openFeesTab(lead._id); }}
-                                    className={`inline-flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all hover:shadow-sm active:scale-95 ${fees.allPaid ? 'bg-green-50 border-green-100 hover:bg-green-100' : 'bg-amber-50 border-amber-100 hover:bg-amber-100'}`}
+                                    className={`inline-flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all hover:shadow-sm active:scale-95 ${fees.allPaid ? 'bg-emerald-50 border-blue-100 hover:bg-blue-100' : 'bg-amber-50 border-amber-100 hover:bg-amber-100'}`}
                                   >
-                                    <span className={`text-[10px] font-black uppercase ${fees.allPaid ? 'text-green-700' : 'text-amber-700'}`}>
+                                    <span className={`text-[10px] font-bold uppercase ${fees.allPaid ? 'text-green-700' : 'text-amber-700'}`}>
                                       {fees.allPaid ? '✓ All Paid' : `${fees.paidCount}/${fees.totalCount} Paid`}
                                     </span>
-                                    <span className={`text-[9px] ${fees.allPaid ? 'text-green-500' : 'text-amber-500'}`}>
+                                    <span className={`text-[9px] ${fees.allPaid ? 'text-green-700' : 'text-amber-500'}`}>
                                       ₹{fees.totalPaid.toLocaleString()} paid{fees.totalPending > 0 ? ` · ₹${fees.totalPending.toLocaleString()} due` : ''}
                                     </span>
                                   </button>
@@ -1271,12 +1200,16 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                             </td>
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-2">
-                                <button
-                                  onClick={e => { e.stopPropagation(); openInEditMode(lead._id); }}
-                                  className="text-green-600 hover:text-green-700 text-xs font-bold hover:underline"
-                                >
-                                  Manage
-                                </button>
+                             <button
+                                onClick={e => { e.stopPropagation(); openInEditMode(lead._id); }}
+                                className="text-[#8b5cf6] hover:text-violet-700 p-1.5 rounded-lg hover:bg-violet-50 transition-colors flex-shrink-0"
+                                title="Edit"
+                                 >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="1.25em" height="1.25em" viewBox="0 0 32 32">
+                                <path d="M0 0h32v32H0z" fill="none" />
+                                <path fill="currentColor" d="M18 23h-2v-2a3.003 3.003 0 0 0-3-3H9a3.003 3.003 0 0 0-3 3v2H4v-2a5.006 5.006 0 0 1 5-5h4a5.006 5.006 0 0 1 5 5ZM11 6a3 3 0 1 1-3 3a3 3 0 0 1 3-3m0-2a5 5 0 1 0 5 5a5 5 0 0 0-5-5M2 26h28v2H2zM22 4v2h4.586L20 12.586L21.414 14L28 7.414V12h2V4z" />
+                                  </svg>
+                             </button>
                                 {currentUserRole === 'admin' && (
                                   <button
                                     onClick={e => { e.stopPropagation(); handleDeleteLeadById(lead._id); }}
@@ -1325,9 +1258,38 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
           </div>
         )}
 
-        {/* ── Batch Groups view ── */}
+        {/* ── Active Batch Card Grid view matching screenshot ── */}
         {viewMode === 'batch' && (
-          <div className="px-6 pb-6 flex-1 overflow-auto space-y-3">
+          <div className={`pb-6 flex-1 overflow-auto space-y-6 transition-all duration-300 ${selectedLeadId ? 'pl-6 pr-3.5' : 'px-6'}`}>
+            {/* Top Bar: Active Batches count & Month/Year selectors */}
+            <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-violet-50 border border-violet-200 text-violet-800 text-xs font-bold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+                Active Batches: {batchGroups.filter(([k]) => k !== '__none__').length}
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none shadow-xs">
+                  <option>October</option>
+                  <option>January</option>
+                  <option>February</option>
+                  <option>March</option>
+                  <option>April</option>
+                  <option>May</option>
+                  <option>June</option>
+                  <option>July</option>
+                  <option>August</option>
+                  <option>September</option>
+                  <option>November</option>
+                  <option>December</option>
+                </select>
+                <select className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none shadow-xs">
+                  <option>2026</option>
+                  <option>2025</option>
+                  <option>2024</option>
+                </select>
+              </div>
+            </div>
+
             {batchGroups.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
@@ -1336,301 +1298,221 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                 <p className="text-sm font-bold text-slate-500">No students found</p>
               </div>
             )}
-            {batchGroups.map(([batchKey, members]) => {
-              const isNone = batchKey === '__none__';
-              const color = isNone
-                ? { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-500', dot: 'bg-slate-300' }
-                : batchColor(batchKey);
-              const isOpen = expandedBatches.has(batchKey);
-              const trainerName = members.find(m => m.Trainer)?.Trainer;
-              const batchDateName = members.find(m => m.batch_date)?.batch_date;
-              return (
-                <div key={batchKey} className={`rounded-2xl border ${color.border} overflow-hidden shadow-sm`}>
-                  <button
-                    className={`w-full flex items-center justify-between px-5 py-4 ${color.bg} hover:brightness-[0.97] transition-all`}
-                    onClick={() => toggleBatch(batchKey)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${color.dot} flex-shrink-0`} />
-                      <div className="text-left">
-                        <p className={`text-sm font-black uppercase tracking-wider ${color.text}`}>
-                          {isNone ? 'No Batch Assigned' : batchKey}
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {members.length} student{members.length !== 1 ? 's' : ''}
-                          {!isNone && trainerName && ` · ${trainerName}`}
-                          {!isNone && batchDateName && ` · ${new Date(batchDateName).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!isNone && (
-                        <button
-                          onClick={e => { e.stopPropagation(); copyBatchCode(batchKey); }}
-                          className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${copiedCode === batchKey ? 'text-green-600 bg-green-50' : 'text-slate-400 hover:text-slate-600 hover:bg-white'}`}
-                        >
-                          {copiedCode === batchKey ? <Icons.Check className="w-3 h-3" /> : <Icons.Copy className="w-3 h-3" />}
-                          {copiedCode === batchKey ? 'Copied' : 'Copy'}
-                        </button>
-                      )}
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${isOpen ? color.text : 'text-slate-400'}`}>
-                        <svg className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                      </div>
-                    </div>
-                  </button>
 
-                  {isOpen && (
-                    <div className="bg-white divide-y divide-slate-50">
+            {/* Grid of Batch Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {batchGroups.map(([batchKey, members]) => {
+                const isNone = batchKey === '__none__';
+                if (isNone && members.length === 0) return null;
+                const batchCode = isNone ? 'No Batch Assigned' : batchKey;
+                const courseName = members.find(m => m.course)?.course || 'GENERAL';
+
+                return (
+                  <div key={batchKey} className="bg-white rounded-2xl border border-violet-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all">
+                    {/* Card Header */}
+                    <div className="bg-violet-50/70 p-3.5 border-b border-violet-100">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-tight break-all" title={batchCode}>
+                          {batchCode}
+                        </h3>
+                        <button
+                          onClick={() => !isNone && copyBatchCode(batchCode)}
+                          title="Copy batch code"
+                          className="text-slate-400 hover:text-slate-600 flex-shrink-0"
+                        >
+                          <Icons.Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-bold">
+                        <span className="inline-flex items-center gap-1 text-violet-700 uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-violet-500" /> Active
+                        </span>
+                        <span className="text-slate-500 uppercase tracking-wider truncate max-w-[140px]" title={courseName}>
+                          {courseName}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Sub-header columns */}
+                    <div className="px-3.5 py-2 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                      <span>{members.length} Student{members.length !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-6">
+                        <span>Paid</span>
+                        <span>Manage</span>
+                      </div>
+                    </div>
+
+                    {/* Student List inside Card */}
+                    <div className="divide-y divide-slate-100 max-h-[260px] overflow-y-auto">
                       {members.map(lead => {
                         const fees = getFeesSummary(lead);
+                        const isPaid = fees ? fees.allPaid : false;
+                        const initial = (lead.userName || '?').charAt(0).toUpperCase();
+
                         return (
                           <div
                             key={lead._id}
-                            className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors"
                             onClick={() => openInEditMode(lead._id)}
+                            className="px-3.5 py-3 flex items-center justify-between gap-2 hover:bg-blue-50/50 dark:hover:bg-blue-500/[0.08] cursor-pointer transition-colors"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                                {(lead.userName || '?').charAt(0).toUpperCase()}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={`w-8 h-8 rounded-full ${profileColor(lead._id).bg} ${profileColor(lead._id).text} flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs`}>
+                                {initial}
                               </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                  <span>{lead.userName}</span>
-                                  {lead.respondedAfterFollowUp && (
-                                    <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Responded"></span>
-                                  )}
-                                  {(lead.campaignHistory || []).some(c => c.repliedAt) && (
-                                    <span className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]" title={`Replied to campaign: ${[...(lead.campaignHistory || [])].reverse().find(c => c.repliedAt)?.campaignName || ''}`}></span>
-                                  )}
-                                </p>
-                                <p className="text-[10px] text-slate-400">{lead.userNumber} · {lead.course || 'General'}</p>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-800 truncate">{lead.userName}</p>
+                                <p className="text-[10px] text-slate-400 truncate">{lead.userNumber}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              {isNone && (
-                                <button
-                                  onClick={e => { e.stopPropagation(); openInEditMode(lead._id); }}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-600 text-white text-[9px] font-black hover:bg-green-700 transition-all active:scale-95"
-                                >
-                                  <Icons.Plus className="w-2.5 h-2.5" />
-                                  Add
-                                </button>
-                              )}
-                              {fees ? (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${fees.allPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                  {fees.allPaid ? '✓ Paid' : `${fees.paidCount}/${fees.totalCount}`}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-slate-400">No fees</span>
-                              )}
+                            <div className="flex items-center gap-7 flex-shrink-0">
+                              <span className="text-[#8b5cf6] font-bold text-sm">
+                                {isPaid ? '✓' : <span className="text-amber-500 text-xs">⏳</span>}
+                              </span>
                               <button
-                                onClick={e => { e.stopPropagation(); setSelectedLeadId(lead._id); }}
-                                className="text-xs font-bold text-green-600 hover:underline"
+                                onClick={e => { e.stopPropagation(); openInEditMode(lead._id); }}
+                                className="text-[#8b5cf6] hover:text-violet-800 p-1"
+                                title="Manage student"
                               >
-                                Manage
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                               </button>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Pagination indicator matching screenshot */}
+            <div className="flex items-center justify-center gap-4 py-4 text-xs font-bold text-slate-600">
+              <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">‹</button>
+              <span>01 - 01</span>
+              <button className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">›</button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Detail panel ── */}
+      {/* ── Student details right sidebar ── */}
       {selectedLead && (
-        <div className="fixed inset-y-0 right-0 w-full md:w-[480px] bg-white border-l border-slate-200 shadow-2xl flex flex-col z-30">
+        <div className="fixed inset-y-0 right-0 sm:inset-y-2 sm:right-2 w-full sm:w-[min(94vw,520px)] md:w-[min(38vw,520px)] min-w-0 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-none sm:rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden font-sans animate-in slide-in-from-right duration-200 " style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
 
-          {/* Panel header */}
-          <div className="p-5 border-b border-slate-100 shrink-0">
-            <div className="flex items-start justify-between gap-3">
+          {/* Panel header matching reference redesign */}
+          <div className="p-5 pb-0 shrink-0 bg-white dark:bg-slate-900">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-black text-lg flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-[#f3e8ff] dark:bg-purple-950/60 text-[#7e22ce] dark:text-purple-300 flex items-center justify-center font-bold text-base flex-shrink-0">
                   {(selectedLead.userName || '?').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <h2 className="font-black text-slate-800 text-base truncate">{selectedLead.userName}</h2>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-500">{selectedLead.userNumber}</span>
+                  <h2 className="font-bold text-slate-800 dark:text-white text-base leading-tight truncate">{selectedLead.userName}</h2>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-slate-500 font-medium">{selectedLead.userNumber}</span>
                     <span
                       role="button"
                       title="Open in WhatsApp"
                       onClick={() => { const n = (selectedLead.userNumber || '').replace(/\D/g, ''); if (n) window.open(`https://wa.me/${n}`, '_blank', 'noopener'); }}
-                      className="text-green-500 hover:text-green-600 cursor-pointer"
+                      className="text-emerald-500 hover:text-emerald-600 cursor-pointer"
                     >
                       <Icons.WhatsApp className="w-3.5 h-3.5" />
                     </span>
                   </div>
-                  {selectedLead.course && (
-                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mt-0.5 truncate">{selectedLead.course}</p>
-                  )}
                 </div>
               </div>
-              <button onClick={() => setSelectedLeadId(null)} className="p-2 hover:bg-slate-100 rounded-full flex-shrink-0 mt-0.5">
-                <Icons.X className="w-5 h-5 text-slate-400" />
-              </button>
+
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {selectedLead.course && (
+                  <span className="text-xs font-bold text-[#8b5cf6] uppercase tracking-wider hidden sm:inline">
+                    {selectedLead.course}
+                  </span>
+                )}
+                <div className="flex items-center gap-1.5">
+                  {currentUserRole === 'admin' && (
+                    <button
+                      onClick={() => handleDeleteLeadById(selectedLead._id)}
+                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete student"
+                    >
+                      <Icons.Trash className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onEditLead?.(selectedLead)}
+                    className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                    title="Edit student"
+                  >
+                    <Icons.Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setSelectedLeadId(null)}
+                    className="w-8 h-8 rounded-full bg-[#dc2626] hover:bg-red-700 text-white flex items-center justify-center shadow-xs transition-transform active:scale-95 flex-shrink-0"
+                    title="Close"
+                  >
+                    <Icons.X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 mt-4 bg-slate-100 p-1 rounded-xl">
-              {(['idcard', 'batch', 'fees', 'cert', 'lead', 'history'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-1.5 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${activeTab === tab ? 'bg-white text-green-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  {tab === 'idcard' ? 'ID Card' : tab === 'batch' ? 'Batch' : tab === 'fees' ? 'Fees' : tab === 'cert' ? 'Cert' : tab === 'lead' ? 'Lead' : 'History'}
-                </button>
-              ))}
+            {/* Tabs matching screenshot */}
+            <div className="flex items-center gap-1 mt-4 bg-[#f5f3ff] dark:bg-slate-950/80 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar border border-transparent dark:border-slate-800">
+              {(['batch', 'idcard', 'fees', 'cert', 'lead', 'history'] as const).map(tab => {
+                const label = tab === 'idcard' ? 'ID CARD' : tab === 'batch' ? 'BATCH' : tab === 'fees' ? 'FEES' : tab === 'cert' ? 'CERT' : tab === 'lead' ? 'LEAD' : 'HISTORY';
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 py-2 px-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all whitespace-nowrap ${
+                      isActive 
+                        ? 'bg-[#ede9fe] text-[#7e22ce] dark:bg-purple-600 dark:text-white shadow-xs' 
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Panel body */}
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto p-5 dark:bg-slate-900">
 
-            {/* ── ID Card tab ── */}
+            {/* ── ID Card tab matching reference screenshot ── */}
             {activeTab === 'idcard' && (
-              <div className="space-y-5">
-
-                {/* View mode: show current values */}
+              <div className="space-y-4">
                 {!idCardEditMode && (
                   <>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-black text-slate-700">ID Card Details</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">ID Card Details</p>
                       <button
                         onClick={() => setIdCardEditMode(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-black hover:bg-slate-200 transition-colors"
+                        className="p-1 text-slate-500 hover:text-slate-700 transition-colors"
+                        title="Edit ID Card Details"
                       >
-                        <Icons.Edit className="w-3.5 h-3.5" /> Edit
+                        <Icons.Edit className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="flex justify-center">
-                      {idCardForm.photoUrl ? (
-                        <img src={idCardForm.photoUrl} alt="Student" className="w-28 h-32 object-cover rounded-xl border border-slate-200" />
-                      ) : (
-                        <div className="w-28 h-32 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-300 text-xs">
-                          No Photo
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3">
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Name</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">{selectedLead.userName}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Course</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {selectedLead.course || <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Mobile</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">{selectedLead.userNumber}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>ID No</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">{idCardForm.idNo}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>DOB</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {idCardForm.dob
-                            ? new Date(idCardForm.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                            : <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Address</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {idCardForm.address || <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Enrolled on</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {idCardForm.classStart
-                            ? formatDDMMYYYY(idCardForm.classStart)
-                            : <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Valid Till</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {idCardForm.validTill
-                            ? formatDDMMYYYY(idCardForm.validTill)
-                            : <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-1">
-                      <button
-                        onClick={handleGenerateIdCard}
-                        disabled={isGeneratingIdCard}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-800 text-white font-black text-sm rounded-xl hover:bg-slate-700 transition-all disabled:opacity-50"
-                      >
-                        {isGeneratingIdCard ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
-                        {isGeneratingIdCard ? 'Generating...' : 'Generate ID Card PDF'}
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className={labelClass}>Generated ID Cards ({generatedIdCards.length})</p>
-                      {generatedIdCards.length === 0 ? (
-                        <p className="text-center text-slate-400 text-xs italic py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                          No ID card generated yet.
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {generatedIdCards.map((card, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                              <div className="min-w-0">
-                                <p className="text-xs font-black text-slate-700 uppercase tracking-wide">Student ID Card</p>
-                                <p className="text-[10px] text-slate-400 truncate mt-0.5">{card.fileName}</p>
-                              </div>
-                              {card.success && card.s3?.url && (
-                                <button
-                                  onClick={() => window.open(card.s3!.url, '_blank', 'noopener')}
-                                  className="flex-shrink-0 text-xs font-bold text-green-600 hover:underline"
-                                >
-                                  Open
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* Edit mode */}
-                {idCardEditMode && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-black text-slate-700">Edit ID Card Details</p>
-                    </div>
-
-                    <div className="flex justify-center">
+                    {/* Centered Add Photo Box matching screenshot */}
+                    <div className="flex justify-center my-3">
                       <label className="cursor-pointer group relative">
                         {idCardForm.photoUrl ? (
-                          <img src={idCardForm.photoUrl} alt="Student" className="w-28 h-32 object-cover rounded-xl border border-slate-200" />
+                          <div className="relative w-28 h-28">
+                            <img src={idCardForm.photoUrl} alt="Student" className="w-full h-full object-cover rounded-2xl border border-slate-200 shadow-xs" />
+                            <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                            </div>
+                          </div>
                         ) : (
-                          <div className="w-28 h-32 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-300 text-xs">
-                            No Photo
+                          <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-[#8b5cf6]/60 bg-[#fbf9fe] hover:bg-violet-50/50 flex flex-col items-center justify-center text-center p-2 transition-colors">
+                            <span className="text-sm font-bold text-[#7c3aed]">+ Add photo</span>
+                            <span className="text-[10px] text-slate-400 mt-0.5">Tap to upload</span>
                           </div>
                         )}
-                        <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-black transition-opacity">
-                          {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
-                        </div>
                         <input
                           type="file"
                           accept="image/*"
@@ -1645,76 +1527,126 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                       </label>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3">
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className={labelClass}>Name</p>
-                        <p className="text-sm font-bold text-slate-700 mt-1">{selectedLead.userName}</p>
+                    {/* Unified Details Card matching screenshot */}
+                    <div className="bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Details</h4>
+
+                      <div className="space-y-4">
+                        {/* Row 1: NAME & COURSE */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">NAME</p>
+                            <p className="text-sm font-bold text-slate-900">{selectedLead.userName || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">COURSE</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {selectedLead.course || 'Data Analytics'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Row 2: MOBILE & DATE OF BIRTH */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">MOBILE</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {formatDisplayMobile(selectedLead.userNumber) || '—'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">DATE OF BIRTH</p>
+                            <span className="text-xs underline decoration-slate-300 underline-offset-4 font-medium text-slate-400 inline-block">
+                              {idCardForm.dob ? formatDDMMYYYY(idCardForm.dob) : 'Not added yet'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Row 3: ENROLLED ON & VALID TILL */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">ENROLLED ON</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {idCardForm.classStart ? formatDDMMYYYY(idCardForm.classStart) : (selectedLead.batch_date ? formatDDMMYYYY(selectedLead.batch_date) : '—')}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">VALID TILL</p>
+                            <span className="text-xs underline decoration-slate-300 underline-offset-4 font-medium text-slate-400 inline-block">
+                              {idCardForm.validTill ? formatDDMMYYYY(idCardForm.validTill) : 'Not added yet'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Row 4: ID NUMBER */}
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">ID NUMBER</p>
+                          <span className="text-xs font-semibold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block break-all">
+                            {idCardForm.idNo || selectedLead._id}
+                          </span>
+                        </div>
+
+                        {/* Row 5: ADDRESS */}
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">ADDRESS</p>
+                          <span className="text-xs underline decoration-slate-300 underline-offset-4 font-medium text-slate-400 inline-block leading-relaxed">
+                            {idCardForm.address || 'Not added yet'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className={labelClass}>Course</p>
-                        <p className="text-sm font-bold text-slate-700 mt-1">{selectedLead.course || '—'}</p>
-                      </div>
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <p className={labelClass}>Mobile</p>
-                        <p className="text-sm font-bold text-slate-700 mt-1">{selectedLead.userNumber}</p>
-                      </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className={labelClass}>ID No</label>
-                      <input
-                        type="text"
-                        value={idCardForm.idNo || ''}
-                        onChange={e => handleIdCardFieldChange('idNo', e.target.value)}
-                        className={fieldClass}
-                      />
+                    {/* Generate ID card PDF Button */}
+                    <div className="pt-2">
+                      <button
+                        onClick={handleGenerateIdCard}
+                        disabled={isGeneratingIdCard}
+                        className="w-full py-3.5 px-6 rounded-2xl bg-[#51228d] hover:bg-[#431a77] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isGeneratingIdCard ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
+                        {isGeneratingIdCard ? 'Generating PDF...' : 'Generate ID card PDF'}
+                      </button>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className={labelClass}>Date of Birth</label>
-                      <input
-                        type="date"
-                        value={idCardForm.dob || ''}
-                        onChange={e => handleIdCardFieldChange('dob', e.target.value)}
-                        className={fieldClass}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className={labelClass}>Address</label>
-                      <textarea
-                        value={idCardForm.address || ''}
-                        onChange={e => handleIdCardFieldChange('address', e.target.value)}
-                        rows={2}
-                        className={fieldClass}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className={labelClass}>Enrolled on</label>
-                      <input
-                        type="date"
-                        value={idCardForm.classStart || ''}
-                        onChange={e => handleIdCardFieldChange('classStart', e.target.value)}
-                        className={fieldClass}
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className={labelClass}>Valid Till</label>
-                      <input
-                        type="date"
-                        value={idCardForm.validTill || ''}
-                        onChange={e => handleIdCardFieldChange('validTill', e.target.value)}
-                        className={fieldClass}
-                      />
-                      {!validTillTouched && (
-                        <p className="text-[10px] text-slate-400 pl-0.5">Defaults to 6 months after Enrolled on — edit to set a custom date.</p>
+                    {/* Generated ID Cards List matching screenshot */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-xs font-medium text-slate-500">
+                        Generate ID Cards ({generatedIdCards.length})
+                      </p>
+                      {generatedIdCards.length === 0 ? (
+                        <p className="text-center text-slate-400 text-xs italic py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                          No ID card generated yet.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {generatedIdCards.map((card, idx) => (
+                            <div key={idx} className="p-3 bg-slate-100/70 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 rounded-xl flex items-center justify-between gap-3 border border-transparent dark:border-slate-800 transition-colors">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-800">Student ID Card</p>
+                                <p className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                                  {card.fileName || 'idcard.pdf'}
+                                </p>
+                              </div>
+                              {card.s3?.url && (
+                                <button
+                                  onClick={() => window.open(card.s3!.url, '_blank', 'noopener')}
+                                  className="text-xs font-bold text-[#7c3aed] dark:text-purple-400 hover:underline flex-shrink-0"
+                                >
+                                  Open
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
+                  </>
+                )}
 
-                    {/* Save / Cancel */}
-                    <div className="flex gap-3 pt-2">
+                {idCardEditMode && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-700">Edit ID Card Details</p>
                       <button
                         onClick={() => {
                           setIdCardEditMode(false);
@@ -1732,222 +1664,280 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                           setValidTillTouched(!!parseDate(latestIdCard?.validTill));
                           setIdCardDirty(false);
                         }}
-                        className="flex-1 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                        className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    {/* Centered Add Photo Box matching screenshot */}
+                    <div className="flex justify-center my-3">
+                      <label className="cursor-pointer group relative">
+                        {idCardForm.photoUrl ? (
+                          <div className="relative w-28 h-28">
+                            <img src={idCardForm.photoUrl} alt="Student" className="w-full h-full object-cover rounded-2xl border border-slate-200 shadow-xs" />
+                            <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-[#8b5cf6]/60 bg-[#fbf9fe] hover:bg-violet-50/50 flex flex-col items-center justify-center text-center p-2 transition-colors">
+                            <span className="text-sm font-bold text-[#7c3aed]">+ Add photo</span>
+                            <span className="text-[10px] text-slate-400 mt-0.5">Tap to upload</span>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploadingPhoto}
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUploadIdCardPhoto(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Unified Details Card matching ID Card Details exactly */}
+                    <div className="bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Details</h4>
+
+                      <div className="space-y-4">
+                        {/* Row 1: NAME & COURSE */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">NAME</p>
+                            <p className="text-sm font-bold text-slate-900">{selectedLead.userName || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">COURSE</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {selectedLead.course || 'Data Analytics'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Row 2: MOBILE & DATE OF BIRTH */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">MOBILE</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {formatDisplayMobile(selectedLead.userNumber) || '—'}
+                            </span>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">DATE OF BIRTH</label>
+                            <input
+                              type="date"
+                              value={idCardForm.dob || ''}
+                              onChange={e => handleIdCardFieldChange('dob', e.target.value)}
+                              className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Row 3: ENROLLED ON & VALID TILL */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">ENROLLED ON</label>
+                            <input
+                              type="date"
+                              value={idCardForm.classStart || ''}
+                              onChange={e => handleIdCardFieldChange('classStart', e.target.value)}
+                              className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">VALID TILL</label>
+                            <input
+                              type="date"
+                              value={idCardForm.validTill || ''}
+                              onChange={e => handleIdCardFieldChange('validTill', e.target.value)}
+                              className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Row 4: ID NUMBER */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">ID NUMBER</label>
+                          <input
+                            type="text"
+                            value={idCardForm.idNo || ''}
+                            onChange={e => handleIdCardFieldChange('idNo', e.target.value)}
+                            placeholder="Enter ID number"
+                            className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                          />
+                        </div>
+
+                        {/* Row 5: ADDRESS */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">ADDRESS</label>
+                          <textarea
+                            value={idCardForm.address || ''}
+                            onChange={e => handleIdCardFieldChange('address', e.target.value)}
+                            rows={2}
+                            placeholder="Enter student address"
+                            className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons matching previous ID card details */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIdCardEditMode(false);
+                          const latestIdCard = Array.isArray(selectedLead.IdCardDetails) && selectedLead.IdCardDetails.length
+                            ? selectedLead.IdCardDetails[selectedLead.IdCardDetails.length - 1]
+                            : null;
+                          setIdCardForm(latestIdCard ? {
+                            dob: parseDate(latestIdCard.dob) || null,
+                            address: latestIdCard.address || '',
+                            idNo: latestIdCard.idNo || selectedLead._id,
+                            classStart: parseDate(latestIdCard.classStart) || selectedLead.batch_date || null,
+                            validTill: parseDate(latestIdCard.validTill) || null,
+                            photoUrl: latestIdCard.photoUrl || '',
+                          } : { ...emptyIdCardForm(), idNo: selectedLead._id, classStart: selectedLead.batch_date || null });
+                          setValidTillTouched(!!parseDate(latestIdCard?.validTill));
+                          setIdCardDirty(false);
+                        }}
+                        className="py-3.5 px-6 rounded-2xl bg-purple-100/70 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-purple-900 dark:text-slate-200 font-bold text-sm text-center transition-colors dark:border dark:border-slate-700"
                       >
                         Cancel
                       </button>
                       <button
+                        type="button"
                         onClick={handleSaveIdCardDetails}
                         disabled={isSavingIdCard}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-black text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                        className="py-3.5 px-6 rounded-2xl bg-[#51228d] hover:bg-[#431a77] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {isSavingIdCard ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
                         {isSavingIdCard ? 'Saving...' : 'Save Details'}
                       </button>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             )}
-
-            {/* ── Batch tab ── */}
+            
+            {/* ── Batch tab matching reference redesign ── */}
             {activeTab === 'batch' && (
-              <div className="space-y-5">
-
-                {/* View mode: show current values */}
+              <div className="space-y-4">
                 {!batchEditMode && (
-                  <>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-black text-slate-700">Batch Details</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Batch Details</p>
                       <button
+                        type="button"
                         onClick={() => setBatchEditMode(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-black hover:bg-slate-200 transition-colors"
+                        className="p-1 text-slate-500 hover:text-slate-700 transition-colors"
+                        title="Edit Batch Details"
                       >
-                        <Icons.Edit className="w-3.5 h-3.5" /> Edit
+                        <Icons.Edit className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3">
-                      {/* Batch Code */}
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Batch Code</p>
-                        {selectedLead.batchId ? (
-                          <div className="flex items-center gap-2 mt-2">
-                            {(() => {
-                              const c = batchColor(selectedLead.batchId);
-                              return (
-                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-black uppercase border ${c.bg} ${c.border} ${c.text}`}>
-                                  <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-                                  {selectedLead.batchId}
-                                </span>
-                              );
-                            })()}
-                            <button
-                              onClick={() => copyBatchCode(selectedLead.batchId!)}
-                              title="Copy batch code"
-                              className={`p-1.5 rounded-lg transition-colors ${copiedCode === selectedLead.batchId ? 'text-green-500 bg-green-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200'}`}
-                            >
-                              {copiedCode === selectedLead.batchId ? <Icons.Check className="w-4 h-4" /> : <Icons.Copy className="w-4 h-4" />}
-                            </button>
+                    {/* Unified Details Card matching ID Card Details UI */}
+                    <div className="bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Details</h4>
+
+                      <div className="space-y-4">
+                        {/* Row 1: TRAINER & BATCH DATE */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">TRAINER</p>
+                            <p className="text-sm font-bold text-slate-900">
+                              {selectedLead.Trainer ? (
+                                `${selectedLead.Trainer} (${getTrainerShortCode(selectedLead.Trainer)})`
+                              ) : (
+                                <span className="text-slate-400 font-medium text-xs">Not assigned</span>
+                              )}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-sm text-slate-400 italic">Not assigned</span>
-                            <button
-                              onClick={handleAutoGenerateBatch}
-                              disabled={isGeneratingBatch}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-black hover:bg-green-700 transition-all disabled:opacity-50"
-                            >
-                              {isGeneratingBatch ? <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Icons.RefreshCcw className="w-3.5 h-3.5" />}
-                              Auto-Generate
-                            </button>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">BATCH DATE</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {selectedLead.batch_date
+                                ? new Date(selectedLead.batch_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                : 'Not set'}
+                            </span>
                           </div>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Trainer */}
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100" title={selectedLead.Trainer || ''}>
-                        <p className={labelClass}>Trainer</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {selectedLead.Trainer ? getTrainerShortCode(selectedLead.Trainer) : <span className="text-slate-400 italic font-normal text-xs">Not assigned</span>}
-                        </p>
-                      </div>
+                        {/* Row 2: BATCH CODE */}
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">BATCH CODE</p>
+                          {selectedLead.batchId ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block tracking-wide">
+                                {selectedLead.batchId}
+                              </span>
+                              <button
+                                onClick={() => copyBatchCode(selectedLead.batchId!)}
+                                title="Copy batch code"
+                                className={`p-1 rounded-lg transition-colors ${copiedCode === selectedLead.batchId ? 'text-[#7c3aed] bg-purple-100' : 'text-slate-400 hover:text-slate-600'}`}
+                              >
+                                {copiedCode === selectedLead.batchId ? <Icons.Check className="w-3.5 h-3.5" /> : <Icons.Copy className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <span className="text-slate-400 font-medium text-xs">Not assigned</span>
+                              <button
+                                onClick={handleAutoGenerateBatch}
+                                disabled={isGeneratingBatch}
+                                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-[#51228d] hover:bg-[#431a77] text-white text-xs font-bold transition-all disabled:opacity-50"
+                              >
+                                {isGeneratingBatch ? <Icons.RefreshCcw className="w-3 h-3 animate-spin" /> : <Icons.RefreshCcw className="w-3 h-3" />}
+                                Auto-Generate
+                              </button>
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Course (short code) */}
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100" title={selectedLead.course || ''}>
-                        <p className={labelClass}>Course</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {selectedLead.course ? getCourseShortCode(selectedLead.course) : <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-
-                      {/* Batch Date */}
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Batch Date</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {selectedLead.batch_date
-                            ? new Date(selectedLead.batch_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                            : <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
-                      </div>
-
-                      {/* Batch Timing */}
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p className={labelClass}>Batch Timing</p>
-                        <p className="text-sm font-bold text-slate-800 mt-1.5">
-                          {selectedLead.batch_start_time && selectedLead.batch_end_time
-                            ? `${formatTime12h(selectedLead.batch_start_time)} - ${formatTime12h(selectedLead.batch_end_time)}`
-                            : <span className="text-slate-400 italic font-normal text-xs">Not set</span>}
-                        </p>
+                        {/* Row 3: START TIME & END TIME */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">START TIME</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {selectedLead.batch_start_time ? formatTime12h(selectedLead.batch_start_time) : 'Not set'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">END TIME</p>
+                            <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                              {selectedLead.batch_end_time ? formatTime12h(selectedLead.batch_end_time) : 'Not set'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Quick generate if nothing set */}
-                    {!selectedLead.batchId && (
-                      <p className="text-[10px] text-slate-400 text-center">
-                        Auto-generate creates a code like <span className="font-bold">Moha-PYT-8hr-2307-0930-1030</span> (trainer-course-programtype-date-start-end)
-                      </p>
-                    )}
-                  </>
+                    {/* Primary Button */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setBatchEditMode(true)}
+                        className="w-full py-3.5 px-6 rounded-2xl bg-[#51228d] hover:bg-[#431a77] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Icons.Edit className="w-4 h-4" />
+                        Edit Batch Details
+                      </button>
+                    </div>
+                  </div>
                 )}
 
-                {/* Edit mode */}
                 {batchEditMode && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-black text-slate-700">Edit Batch Details</p>
-                    </div>
-
-                    {/* Trainer dropdown */}
-                    <div className="space-y-1">
-                      <label className={labelClass}>Trainer</label>
-                      <select
-                        value={batchForm.trainer}
-                        onChange={e => setBatchForm(prev => ({ ...prev, trainer: e.target.value, batchId: '' }))}
-                        className={fieldClass}
-                        disabled={trainersLoading}
-                      >
-                        <option value="">{trainersLoading ? 'Loading trainers...' : '— Select Trainer —'}</option>
-                        {trainers.map(t => (
-                          <option key={t._id} value={t.username}>{t.username} ({getTrainerShortCode(t.username)})</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Batch Code dropdown (trainer-aware) */}
-                    <div className="space-y-1">
-                      <label className={labelClass}>Batch Code</label>
-                      {batchForm.trainer ? (
-                        <select
-                          value={batchForm.batchId}
-                          onChange={e => setBatchForm(prev => ({ ...prev, batchId: e.target.value }))}
-                          className={fieldClass}
-                        >
-                          <option value="">— Select existing batch —</option>
-                          {(trainers.find(t => t.username === batchForm.trainer)?.batchIds ?? []).map(bid => (
-                            <option key={bid} value={bid}>{bid}</option>
-                          ))}
-                          <option value="__new__">+ Generate New Batch Code</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value=""
-                          readOnly
-                          placeholder="Select a trainer first"
-                          className={`${fieldClass} cursor-not-allowed opacity-50`}
-                        />
-                      )}
-                      {batchForm.batchId === '__new__' && (
-                        <p className="text-[10px] text-slate-400 pl-0.5">A new code will be auto-generated when you save.</p>
-                      )}
-                    </div>
-
-                    {/* Batch Date field */}
-                    <div className="space-y-1">
-                      <label className={labelClass}>Batch Date</label>
-                      <input
-                        type="date"
-                        value={batchForm.batchDate || ''}
-                        onChange={e => setBatchForm(prev => ({ ...prev, batchDate: e.target.value }))}
-                        className={fieldClass}
-                      />
-                    </div>
-
-                    {/* Batch Start / End Time */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className={labelClass}>
-                          Start Time{isGeneratingNewBatchCode && <span className="text-red-500"> *</span>}
-                        </label>
-                        <input
-                          type="time"
-                          value={batchForm.startTime || ''}
-                          onChange={e => setBatchForm(prev => ({ ...prev, startTime: e.target.value }))}
-                          className={fieldClass}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className={labelClass}>
-                          End Time{isGeneratingNewBatchCode && <span className="text-red-500"> *</span>}
-                        </label>
-                        <input
-                          type="time"
-                          value={batchForm.endTime || ''}
-                          onChange={e => setBatchForm(prev => ({ ...prev, endTime: e.target.value }))}
-                          className={fieldClass}
-                        />
-                      </div>
-                    </div>
-                    {isGeneratingNewBatchCode ? (
-                      <p className="text-[10px] text-amber-600 font-bold pl-0.5">Start Time and End Time are required to generate a batch code, e.g. Moha-PYT-8hr-2307-0930-1030.</p>
-                    ) : (
-                      <p className="text-[10px] text-slate-400 pl-0.5">Setting both times lets an auto-generated batch code include them, e.g. Moha-PYT-8hr-2307-0930-1030.</p>
-                    )}
-
-                    {/* Save / Cancel */}
-                    <div className="flex gap-3 pt-2">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Edit Batch Details</p>
                       <button
+                        type="button"
                         onClick={() => {
                           setBatchEditMode(false);
                           setBatchForm({
@@ -1958,14 +1948,134 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                             endTime: selectedLead.batch_end_time || '',
                           });
                         }}
-                        className="flex-1 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                        className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    {/* Unified Details Card matching ID Card Details exactly */}
+                    <div className="bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Batch Details</h4>
+
+                      <div className="space-y-4">
+                        {/* TRAINER */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">TRAINER :</label>
+                          <div className="relative">
+                            <select
+                              value={batchForm.trainer}
+                              onChange={e => setBatchForm(prev => ({ ...prev, trainer: e.target.value, batchId: '' }))}
+                              className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 appearance-none pr-10 cursor-pointer transition-colors"
+                              disabled={trainersLoading}
+                            >
+                              <option value="">{trainersLoading ? 'Loading trainers...' : '— Select Trainer —'}</option>
+                              {trainers.map(t => (
+                                <option key={t._id} value={t.username}>{t.username} ({getTrainerShortCode(t.username)})</option>
+                              ))}
+                            </select>
+                            <Icons.ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
+                          </div>
+                        </div>
+
+                        {/* BATCH CODE */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">BATCH CODE:</label>
+                          <div className="relative">
+                            {batchForm.trainer ? (
+                              <select
+                                value={batchForm.batchId}
+                                onChange={e => setBatchForm(prev => ({ ...prev, batchId: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 appearance-none pr-10 cursor-pointer transition-colors"
+                              >
+                                <option value="">— Select existing batch —</option>
+                                {(trainers.find(t => t.username === batchForm.trainer)?.batchIds ?? []).map(bid => (
+                                  <option key={bid} value={bid}>{bid}</option>
+                                ))}
+                                <option value="__new__">+ Generate New Batch Code</option>
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value=""
+                                readOnly
+                                placeholder="Select a trainer first"
+                                className="w-full bg-white/70 border border-purple-100 text-slate-400 font-medium text-xs rounded-xl py-2.5 px-3 cursor-not-allowed focus:outline-none"
+                              />
+                            )}
+                            <Icons.ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
+                          </div>
+                          {batchForm.batchId === '__new__' && (
+                            <p className="text-[10px] text-[#7c3aed] font-medium pt-1">A new code will be auto-generated when you save.</p>
+                          )}
+                        </div>
+
+                        {/* BATCH DATE */}
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">BATCH DATE</label>
+                          <input
+                            type="date"
+                            value={batchForm.batchDate || ''}
+                            onChange={e => setBatchForm(prev => ({ ...prev, batchDate: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 cursor-pointer transition-colors"
+                          />
+                        </div>
+
+                        {/* START TIME & END TIME */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                              START TIME:{isGeneratingNewBatchCode && <span className="text-red-500"> *</span>}
+                            </label>
+                            <input
+                              type="time"
+                              value={batchForm.startTime || ''}
+                              onChange={e => setBatchForm(prev => ({ ...prev, startTime: e.target.value }))}
+                              className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 cursor-pointer transition-colors"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                              END TIME:{isGeneratingNewBatchCode && <span className="text-red-500"> *</span>}
+                            </label>
+                            <input
+                              type="time"
+                              value={batchForm.endTime || ''}
+                              onChange={e => setBatchForm(prev => ({ ...prev, endTime: e.target.value }))}
+                              className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 cursor-pointer transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-slate-400 font-normal">
+                          Setting both times lets an auto-generated batch code include them.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Action buttons matching previous ID card details */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBatchEditMode(false);
+                          setBatchForm({
+                            batchId: selectedLead.batchId || '',
+                            trainer: selectedLead.Trainer || '',
+                            batchDate: selectedLead.batch_date || '',
+                            startTime: selectedLead.batch_start_time || '',
+                            endTime: selectedLead.batch_end_time || '',
+                          });
+                        }}
+                        className="py-3.5 px-6 rounded-2xl bg-purple-100/70 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-purple-900 dark:text-slate-200 font-bold text-sm text-center transition-colors dark:border dark:border-slate-700"
                       >
                         Cancel
                       </button>
                       <button
+                        type="button"
                         onClick={handleSaveBatch}
                         disabled={isSavingBatch || isGeneratingBatch || (isGeneratingNewBatchCode && (!batchForm.startTime || !batchForm.endTime))}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-black text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                        className="py-3.5 px-6 rounded-2xl bg-[#51228d] hover:bg-[#431a77] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {isSavingBatch ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
                         {isSavingBatch ? 'Saving...' : 'Save Batch'}
@@ -1976,235 +2086,294 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
               </div>
             )}
 
-            {/* ── Fees tab ── */}
-            {activeTab === 'fees' && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className={`p-3 rounded-xl border ${isBilledAmountLocked ? 'bg-slate-100 border-slate-200' : 'bg-slate-50 border-slate-100'}`}>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      Billed Amount
-                      {isBilledAmountLocked && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      )}
-                    </label>
-                    <div className="flex items-center mt-1">
-                      <span className="text-slate-400 mr-1 text-sm">Rs</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={feesBilledAmount}
-                        onChange={e => handleFeesBilledAmountChange(e.target.value)}
-                        onFocus={e => !isBilledAmountLocked && e.target.select()}
-                        readOnly={isBilledAmountLocked}
-                        className={`bg-transparent border-none p-0 w-full font-black text-slate-800 text-lg focus:ring-0 outline-none ${isBilledAmountLocked ? 'cursor-not-allowed' : ''}`}
-                        placeholder="0"
-                        title={isBilledAmountLocked ? 'Only admins can change the billed amount once set' : undefined}
-                      />
-                    </div>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-xl border border-green-100">
-                    <label className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Paid</label>
-                    <div className="mt-1 font-black text-green-700 text-lg">Rs {feesPaidAmount.toLocaleString()}</div>
-                  </div>
-                  <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                    <label className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Pending</label>
-                    <div className="mt-1 font-black text-red-700 text-lg">Rs {feesBalanceAmount.toLocaleString()}</div>
-                  </div>
-                </div>
+            {/* ── Fees tab matching reference redesign ── */}
+            {activeTab === 'fees' && (() => {
+              const billedNum = parseFloat(feesBilledAmount) || 0;
+              const paidPct = billedNum > 0 ? Math.min(100, Math.round((feesPaidAmount / billedNum) * 100)) : 0;
+              const pendingPct = billedNum > 0 ? Math.min(100, Math.round((feesBalanceAmount / billedNum) * 100)) : 0;
 
-                {overdueInstallments.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-                    <Icons.X className="w-4 h-4 text-red-500" />
-                    <span className="text-xs font-bold text-red-700">
-                      {overdueInstallments.length} installment{overdueInstallments.length !== 1 ? 's are' : ' is'} overdue
-                    </span>
-                  </div>
-                )}
-
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-700">Installments</h3>
-                      <p className="text-xs text-slate-500">{feesInstallments.length} total · {pendingInstallments.length} pending</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {feesDirty && (
-                        <button onClick={handleCancelFees} className="text-xs bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-all">Cancel</button>
-                      )}
-                      <button onClick={handleAddInstallment} className="text-xs bg-slate-800 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700 transition-all">
-                        + Add Installment
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-                    {feesInstallments.map((inst, index) => {
-                      const dueDateValue = parseDate(inst.dueDate);
-                      const isOverdue =
-                        inst.status === 'Pending' &&
-                        !!dueDateValue &&
-                        !isNaN(new Date(dueDateValue).getTime()) &&
-                        new Date(dueDateValue) < new Date() &&
-                        inst.amount > 0;
-
-                      return (
-                        <div
-                          key={index}
-                          className={`p-3 rounded-xl border bg-white shadow-sm transition-colors group ${isOverdue ? 'border-red-300 bg-red-50/40' : 'border-slate-200 hover:border-green-200'}`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
-                              {isOverdue && <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded">Overdue</span>}
-                            </div>
-                            <button onClick={() => handleDeleteInstallment(index)} className="text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                              <Icons.Trash className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 mb-2">
-                            <div>
-                              <label className="block text-[10px] text-slate-400 mb-0.5">Due Date</label>
-                              <input
-                                type="date"
-                                value={parseDate(inst.dueDate)}
-                                onChange={e => handleInstallmentChange(index, 'dueDate', e.target.value)}
-                                className="w-full text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-green-500 py-2 px-2 outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] text-slate-400 mb-0.5">Amount</label>
-                              <input
-                                type="number"
-                                value={inst.amount}
-                                onChange={e => handleInstallmentChange(index, 'amount', Number(e.target.value))}
-                                className="w-full text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-green-500 py-2 px-2 outline-none"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-slate-400 mb-0.5">Status</label>
-                            <select
-                              value={inst.status}
-                              onChange={e => handleInstallmentChange(index, 'status', e.target.value as Installment['status'])}
-                              className={`w-full text-xs font-bold py-2 px-2 rounded-lg border outline-none focus:ring-1 ${inst.status === 'Paid' ? 'bg-green-50 text-green-700 border-green-200 focus:ring-green-500' : 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-500'}`}
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Paid">Paid</option>
-                            </select>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between gap-2">
-                            {inst.billGenerated ? (
-                              inst.billUrl ? (
-                                <a href={inst.billUrl} target="_blank" rel="noopener" className="text-xs text-indigo-600 font-bold" onClick={e => e.stopPropagation()}>View Bill</a>
-                              ) : (
-                                <span className="text-xs text-slate-500">Bill generated</span>
-                              )
-                            ) : inst.status === 'Paid' ? (
-                              <button
-                                onClick={e => { e.stopPropagation(); handleGenerateBill(index); }}
-                                disabled={feesGeneratingIndex === index}
-                                className={`text-xs px-2.5 py-1.5 rounded-lg font-bold transition-all ${feesGeneratingIndex === index ? 'bg-slate-300 text-slate-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
-                              >
-                                {feesGeneratingIndex === index ? 'Generating...' : 'Generate Bill'}
-                              </button>
-                            ) : (
-                              <span className="text-xs text-slate-400">Bill available after payment</span>
-                            )}
-                            {inst.billGenerated && inst.billGeneratedAt && (
-                              <div className="text-[10px] text-slate-400">{formatFeesDateTime(inst.billGeneratedAt)}</div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {feesInstallments.length === 0 && (
-                      <div className="text-center py-8 text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                        No installments added yet. Click "+ Add Installment" to create one.
+              return (
+                <div className="space-y-6">
+                  {/* Summary Progress Bars matching Image 2 */}
+                  <div className="p-4 sm:p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-2.5 sm:space-y-3">
+                    {/* Row 1: Billed */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-800 w-14 shrink-0">Billed</span>
+                      <span className="text-xs text-slate-400 font-normal shrink-0">( ₹ )</span>
+                      <div className="w-16 sm:w-20 shrink-0 flex items-center gap-1">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={feesBilledAmount}
+                          onChange={e => handleFeesBilledAmountChange(e.target.value)}
+                          onFocus={e => !isBilledAmountLocked && e.target.select()}
+                          readOnly={isBilledAmountLocked}
+                          className={`font-bold text-slate-900 text-sm sm:text-base tracking-tight bg-transparent border-none border-0 outline-none focus:outline-none focus:ring-0 focus:border-none p-0 m-0 w-full shadow-none ${isBilledAmountLocked ? 'cursor-not-allowed' : 'cursor-text'}`}
+                          style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+                          placeholder="0"
+                          title={isBilledAmountLocked ? 'Only admins can change the billed amount once set' : 'Click to edit billed amount'}
+                        />
+                        {isBilledAmountLocked && (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        )}
                       </div>
+                      <div className="flex-1 min-w-[70px]">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                          <div className="bg-[#1d4ed8] h-full rounded-full w-full" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Paid */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-800 w-14 shrink-0">Paid</span>
+                      <span className="text-xs text-slate-400 font-normal shrink-0">( ₹ )</span>
+                      <span className="font-bold text-slate-900 text-sm sm:text-base tracking-tight w-16 sm:w-20 shrink-0 truncate">
+                        {feesPaidAmount.toLocaleString('en-IN')}
+                      </span>
+                      <div className="flex-1 min-w-[70px]">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className="bg-[#16a34a] h-full rounded-full transition-all duration-300"
+                            style={{ width: `${paidPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Pending */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-800 w-14 shrink-0">Pending</span>
+                      <span className="text-xs text-slate-400 font-normal shrink-0">( ₹ )</span>
+                      <span className="font-bold text-slate-900 text-sm sm:text-base tracking-tight w-16 sm:w-20 shrink-0 truncate">
+                        {feesBalanceAmount.toLocaleString('en-IN')}
+                      </span>
+                      <div className="flex-1 min-w-[70px]">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className="bg-[#dc2626] h-full rounded-full transition-all duration-300"
+                            style={{ width: `${pendingPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Installments Header + Button */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800 tracking-tight">Installments details</h3>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        {feesInstallments.length} Total · {pendingInstallments.length} Pending
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleAddInstallment}
+                      className="px-4 py-2 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold text-xs rounded-full shadow-xs transition-colors flex items-center gap-1.5"
+                    >
+                      + Add Installment
+                    </button>
+                  </div>
+
+                  {/* Installment List */}
+                  <div className="space-y-4">
+                    {feesInstallments.length === 0 ? (
+                      <p className="text-center text-slate-400 text-xs italic py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        No installments added yet. Click "+ Add Installment" above.
+                      </p>
+                    ) : (
+                      feesInstallments.map((inst, index) => {
+                        const installmentLabel =
+                          index === 0 ? '1st Installment' : index === 1 ? '2nd Installment' : index === 2 ? '3rd Installment' : `${index + 1}th Installment`;
+
+                        return (
+                          <div
+                            key={index}
+                            className="p-5 rounded-3xl border border-purple-100/70 bg-white shadow-xs space-y-4 relative hover:border-purple-200 transition-colors"
+                          >
+                            {/* Title & Delete */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-900 underline underline-offset-4 decoration-slate-300">
+                                {installmentLabel}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteInstallment(index)}
+                                className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                                title="Delete installment"
+                              >
+                                <Icons.Trash className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            {/* Due Date Row */}
+                            <div className="flex items-center justify-between gap-4">
+                              <label className="text-xs font-semibold text-slate-700">Due Date:</label>
+                              <div className="relative flex-1 max-w-[200px]">
+                                <input
+                                  type="date"
+                                  value={inst.dueDate ? (parseDate(inst.dueDate) || '') : ''}
+                                  onChange={e => handleInstallmentChange(index, 'dueDate', e.target.value)}
+                                  className="w-full text-right pr-3 pl-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:border-[#7c3aed] transition-colors"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Amount Row */}
+                            <div className="flex items-center justify-between gap-4">
+                              <label className="text-xs font-semibold text-slate-700">Amount:</label>
+                              <div className="relative flex-1 max-w-[200px]">
+                                <input
+                                  type="text"
+                                  value={inst.amount.toLocaleString('en-IN')}
+                                  onChange={e => handleInstallmentChange(index, 'amount', Number(e.target.value.replace(/,/g, '')))}
+                                  className="w-full text-right pr-8 pl-3 py-2 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200/80 rounded-xl outline-none focus:border-[#7c3aed] transition-colors"
+                                />
+                                <span className="text-xs font-bold text-[#7c3aed] absolute right-3 top-2.5 pointer-events-none">₹</span>
+                              </div>
+                            </div>
+
+                            {/* Status Row */}
+                            <div className="flex items-center justify-between gap-4">
+                              <label className="text-xs font-semibold text-slate-700">Status:</label>
+                              <div className="w-1/2 flex justify-end">
+                                <select
+                                  value={inst.status}
+                                  onChange={e => handleInstallmentChange(index, 'status', e.target.value)}
+                                  className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold outline-none transition-colors ${
+                                    inst.status === 'Paid'
+                                      ? 'border-violet-300 text-[#7c3aed] bg-[#ede9fe]'
+                                      : 'border-amber-300 text-amber-700 bg-amber-50'
+                                  }`}
+                                >
+                                  <option value="Pending">Pending</option>
+                                  <option value="Paid">Paid</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* View Bill Button */}
+                            <div className="pt-2">
+                              <button
+                                onClick={() => handleGenerateBill(index)}
+                                disabled={feesGeneratingIndex === index}
+                                className="py-2.5 px-6 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold text-xs rounded-xl shadow-xs transition-all disabled:opacity-50 flex items-center gap-2"
+                              >
+                                {feesGeneratingIndex === index ? <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : null}
+                                {feesGeneratingIndex === index ? 'Generating...' : 'View Bill'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ── Certificate tab ── */}
             {activeTab === 'cert' && (
-              <div className="space-y-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-black text-slate-700">Completion Certificate Details</p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-700">Completion Certificate Details</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className={labelClass}>Salutation</label>
-                    <select
-                      value={certForm.salutation || ''}
-                      onChange={e => handleCertFieldChange('salutation', e.target.value)}
-                      className={fieldClass}
+                {/* Unified Details Card matching ID Card Details UI */}
+                <div className="bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-5">Certificate Details</h4>
+
+                  <div className="space-y-4">
+                    {/* Row 1: SALUTATION & STUDENT NAME */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                          Salutation <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={certForm.salutation || ''}
+                          onChange={e => handleCertFieldChange('salutation', e.target.value)}
+                          className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                        >
+                          <option value="">Select</option>
+                          <option value="Mr">Mr</option>
+                          <option value="Mrs">Mrs</option>
+                          <option value="Ms">Ms</option>
+                          <option value="Miss">Miss</option>
+                          <option value="Dr">Dr</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                          Student Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={certForm.userName || ''}
+                          onChange={e => handleCertFieldChange('userName', e.target.value)}
+                          placeholder="Full Name"
+                          className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 2: COURSE & ISSUE DATE */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">COURSE</p>
+                        <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                          {selectedLead.course || 'Data Analytics'}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">ISSUE DATE</label>
+                        <input
+                          type="date"
+                          value={certForm.issue_date || ''}
+                          onChange={e => handleCertFieldChange('issue_date', e.target.value)}
+                          className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 3: PROJECT TITLE */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">PROJECT TITLE</label>
+                      <input
+                        type="text"
+                        value={certForm.project_title || ''}
+                        onChange={e => handleCertFieldChange('project_title', e.target.value)}
+                        placeholder="e.g. Java Full-Stack with AI"
+                        className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                      />
+                    </div>
+
+                    {/* Row 4: INTERNSHIP TITLE */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">INTERNSHIP TITLE</label>
+                      <input
+                        type="text"
+                        value={certForm.intern_title || ''}
+                        onChange={e => handleCertFieldChange('intern_title', e.target.value)}
+                        placeholder="e.g. AI Powered CRM"
+                        className="w-full bg-white dark:bg-slate-800 border border-purple-200/90 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-xs rounded-xl py-2 px-3 focus:outline-none focus:border-[#7c3aed] dark:focus:border-purple-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions: Save (if modified) & Generate */}
+                <div className="space-y-3 pt-1">
+                  {certDirty && (
+                    <button
+                      onClick={handleSaveCourseCert}
+                      disabled={isSavingCert}
+                      className="w-full py-3.5 px-6 rounded-2xl bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      <option value="">—</option>
-                      <option value="Mr">Mr</option>
-                      <option value="Mrs">Mrs</option>
-                      <option value="Ms">Ms</option>
-                      <option value="Miss">Miss</option>
-                      <option value="Dr">Dr</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className={labelClass}>Issue Date</label>
-                    <input
-                      type="date"
-                      value={certForm.issue_date || ''}
-                      onChange={e => handleCertFieldChange('issue_date', e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                </div>
+                      {isSavingCert ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
+                      {isSavingCert ? 'Saving Details...' : 'Save Certificate Details'}
+                    </button>
+                  )}
 
-                <div className="space-y-1">
-                  <label className={labelClass}>Student Name</label>
-                  <input
-                    type="text"
-                    value={certForm.userName || ''}
-                    onChange={e => handleCertFieldChange('userName', e.target.value)}
-                    className={fieldClass}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className={labelClass}>Course</label>
-                  <input
-                    type="text"
-                    value={certForm.course || ''}
-                    onChange={e => handleCertFieldChange('course', e.target.value)}
-                    className={fieldClass}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className={labelClass}>Project Title</label>
-                  <input
-                    type="text"
-                    value={certForm.project_title || ''}
-                    onChange={e => handleCertFieldChange('project_title', e.target.value)}
-                    placeholder="e.g. AI Powered CRM"
-                    className={fieldClass}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className={labelClass}>Internship Title</label>
-                  <input
-                    type="text"
-                    value={certForm.intern_title || ''}
-                    onChange={e => handleCertFieldChange('intern_title', e.target.value)}
-                    placeholder="e.g. AI Powered CRM"
-                    className={fieldClass}
-                  />
-                </div>
-
-                <div className="pt-1">
                   <button
                     onClick={handleGenerateCourseCert}
                     disabled={isGeneratingCert || certDirty || !canGenerateCourseCert}
@@ -2213,49 +2382,57 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                         : !canGenerateCourseCert ? 'Billing must be completed and fully paid (no pending installments) before generating certificates'
                         : undefined
                     }
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-800 text-white font-black text-sm rounded-xl hover:bg-slate-700 transition-all disabled:opacity-50"
+                    className="w-full py-3.5 px-6 rounded-2xl bg-[#51228d] hover:bg-[#431a77] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isGeneratingCert ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
                     {isGeneratingCert ? 'Generating...' : 'Generate Certificates'}
                   </button>
+
                   {!canGenerateCourseCert && !certDirty && (
-                    <p className="text-[10px] text-amber-600 text-center mt-2">
-                      Complete billing (amount &gt; 0) and clear all pending installments to generate certificates.
-                    </p>
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-xl text-center">
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+                        Complete billing (amount &gt; 0) and clear all pending installments to generate certificates.
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                <div className="space-y-2">
+                {/* Generated Certificates List matching ID card screenshot */}
+                <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between">
-                    <p className={labelClass}>Generated Certificates ({generatedCourseCerts.length})</p>
+                    <p className="text-xs font-medium text-slate-500">
+                      Generated Certificates ({generatedCourseCerts.length})
+                    </p>
                     {generatedCourseCerts.length > 0 && (
                       <button
                         onClick={handlePrintAllCourseCerts}
                         disabled={isPrintingCert}
-                        className="text-xs font-black text-green-600 hover:underline disabled:opacity-50"
+                        className="text-xs font-bold text-[#7c3aed] hover:underline disabled:opacity-50"
                       >
-                        {isPrintingCert ? 'Preparing...' : 'Print All'}
+                        {isPrintingCert ? 'Preparing...' : 'Print all'}
                       </button>
                     )}
                   </div>
                   {generatedCourseCerts.length === 0 ? (
-                    <p className="text-center text-slate-400 text-xs italic py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <p className="text-center text-slate-400 text-xs italic py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                       No certificates generated yet.
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {generatedCourseCerts.map((cert, idx) => (
-                        <div key={idx} className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div key={idx} className="p-3 bg-slate-100/70 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 rounded-xl flex items-center justify-between gap-3 border border-transparent dark:border-slate-800 transition-colors">
                           <div className="min-w-0">
-                            <p className="text-xs font-black text-slate-700 uppercase tracking-wide">
+                            <p className="text-xs font-bold text-slate-800">
                               {cert.type === 'enrollment' ? 'Course Enrollment' : cert.type === 'completion' ? 'Course Completion' : cert.type === 'project' ? 'Project Experience' : cert.type === 'internship' ? 'Internship' : 'Certificate'}
                             </p>
-                            <p className="text-[10px] text-slate-400 truncate mt-0.5">{cert.fileName}</p>
+                            <p className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                              {cert.fileName || 'certificate.pdf'}
+                            </p>
                           </div>
                           {cert.success && cert.s3?.url && (
                             <button
                               onClick={() => window.open(cert.s3!.url, '_blank', 'noopener')}
-                              className="flex-shrink-0 text-xs font-bold text-green-600 hover:underline"
+                              className="text-xs font-bold text-[#7c3aed] hover:underline flex-shrink-0"
                             >
                               Open
                             </button>
@@ -2270,78 +2447,127 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
 
             {/* ── Lead tab ── */}
             {activeTab === 'lead' && (
-              <div className="space-y-5">
-                <div className="flex gap-2">
+              <div className="space-y-4">
+                {/* Actions: Edit Lead & Delete Lead */}
+                <div className="flex gap-2.5">
                   <button
                     onClick={() => onEditLead?.(selectedLead)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-black hover:bg-slate-200 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#ede9fe] hover:bg-[#ddd6fe] dark:bg-purple-600 dark:hover:bg-purple-700 text-[#7c3aed] dark:text-white rounded-xl text-xs font-bold transition-all shadow-xs"
                   >
                     <Icons.Edit className="w-3.5 h-3.5" /> Edit Lead
                   </button>
                   {currentUserRole === 'admin' && (
                     <button
                       onClick={() => { if (!window.confirm('Delete this lead permanently?')) return; onDeleteLead?.(selectedLead._id); setSelectedLeadId(null); }}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-all"
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition-all border border-transparent dark:border-red-900/50"
                     >
                       <Icons.Trash className="w-3.5 h-3.5" /> Delete
                     </button>
                   )}
                 </div>
 
+                {/* Status & Pipeline */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className={labelClass}>Status</label>
-                    <select value={selectedLead.status} onChange={e => handleStatusChange(e.target.value)} disabled={leadLoading} className={fieldClass}>
-                      <option value="Hot">Hot</option>
-                      <option value="Warm">Warm</option>
-                      <option value="Cold">Cold</option>
-                    </select>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">STATUS</label>
+                    <div className="relative">
+                      <select
+                        value={selectedLead.status}
+                        onChange={e => handleStatusChange(e.target.value)}
+                        disabled={leadLoading}
+                        className="w-full bg-white border border-purple-200/90 text-slate-900 font-semibold text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-[#7c3aed] appearance-none pr-8 cursor-pointer transition-colors"
+                      >
+                        <option value="Hot">Hot</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                      </select>
+                      <Icons.ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className={labelClass}>Pipeline</label>
-                    <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-bold">{selectedLead.pipeline || 'N/A'}</div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">PIPELINE</label>
+                    <div className="w-full bg-[#e5effc] text-slate-800 font-semibold text-xs rounded-xl py-2.5 px-3">
+                      {selectedLead.pipeline || 'Enrolled'}
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className={labelClass}>Assigned To</label>
+                {/* Assigned To */}
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">ASSIGNED TO</label>
                   {currentUserRole === 'admin' ? (
-                    <select value={selectedLead.assignedto || ''} onChange={e => handleAssign(e.target.value)} disabled={leadLoading} className={fieldClass}>
-                      <option value="">Unassigned</option>
-                      {users.map(u => <option key={u.username} value={u.username}>{u.username}</option>)}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={selectedLead.assignedto || ''}
+                        onChange={e => handleAssign(e.target.value)}
+                        disabled={leadLoading}
+                        className="w-full bg-white border border-purple-200/90 text-slate-900 font-semibold text-xs rounded-xl py-2.5 px-3 focus:outline-none focus:border-[#7c3aed] appearance-none pr-8 cursor-pointer transition-colors"
+                      >
+                        <option value="">Unassigned</option>
+                        {users.map(u => <option key={u.username} value={u.username}>{u.username}</option>)}
+                      </select>
+                      <Icons.ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none stroke-[2.5]" />
+                    </div>
                   ) : (
-                    <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700">
+                    <div className="w-full bg-[#e5effc] text-slate-800 font-semibold text-xs rounded-xl py-2.5 px-3">
                       {selectedLead.assignedto || <span className="text-slate-400 italic">Unassigned</span>}
                     </div>
                   )}
                 </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-2.5">
-                  <div>
-                    <p className={labelClass}>Course</p>
-                    <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedLead.course || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className={labelClass}>Source</p>
-                    <p className="text-sm text-slate-600 mt-0.5">{selectedLead.leadfrom || 'Manual'}</p>
-                  </div>
-                  {selectedLead.programType && (
-                    <div>
-                      <p className={labelClass}>Program Type</p>
-                      <p className="text-sm text-slate-600 mt-0.5">{selectedLead.programType}</p>
+                {/* Unified Lead Information Card matching ID Card Details */}
+                <div className="bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+                  <h4 className="text-base font-bold text-slate-900 dark:text-white mb-4">Lead Information</h4>
+
+                  <div className="space-y-4">
+                    {/* Row 1: COURSE & SOURCE */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">COURSE</p>
+                        <span className="text-sm font-bold text-slate-900 underline decoration-slate-300 underline-offset-4 inline-block">
+                          {selectedLead.course || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">SOURCE</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.leadfrom || 'Manual'}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                  {selectedLead.profession && (
-                    <div>
-                      <p className={labelClass}>Profession</p>
-                      <p className="text-sm text-slate-600 mt-0.5">{selectedLead.profession}</p>
+
+                    {/* Row 2: PROGRAM TYPE & PROFESSION */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">PROGRAM TYPE</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.programType || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">PROFESSION</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.profession || '—'}
+                        </span>
+                      </div>
                     </div>
-                  )}
+
+                    {selectedLead.referredBy && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">REFERRED BY</p>
+                        <span className="text-xs font-semibold text-slate-700 inline-block">
+                          {selectedLead.referredBy}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <p className={labelClass}>Remarks ({(selectedLead.remarks || []).length})</p>
+                {/* Remarks Section */}
+                <div className="space-y-3 pt-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Remarks ({(selectedLead.remarks || []).length})
+                  </p>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -2350,25 +2576,29 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                       onChange={e => setNewRemark(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleAddRemark(); }}
                       disabled={leadLoading}
-                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-green-500"
+                      className="flex-1 px-3.5 py-2.5 bg-white border border-purple-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none focus:border-[#7c3aed] transition-colors"
                     />
                     <button
                       onClick={handleAddRemark}
                       disabled={!newRemark.trim() || leadLoading}
-                      className="flex-shrink-0 p-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50"
+                      className="flex-shrink-0 p-2.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white rounded-xl shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center"
+                      title="Add Remark"
                     >
-                      <Icons.Plus className="w-4 h-4" />
+                      <Icons.Plus className="w-4 h-4 stroke-[2.5]" />
                     </button>
                   </div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-0.5">
+
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-0.5 custom-scrollbar">
                     {(selectedLead.remarks || []).length === 0 ? (
-                      <p className="text-center text-slate-400 text-xs italic py-6">No remarks yet</p>
+                      <p className="text-center text-slate-400 text-xs italic py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        No remarks yet
+                      </p>
                     ) : (
                       [...(selectedLead.remarks || [])].reverse().map(r => (
-                        <div key={r._id} className="group p-3 bg-slate-50 rounded-xl border border-slate-100 flex justify-between gap-3 items-start">
+                        <div key={r._id} className="group p-3.5 bg-slate-100/70 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 rounded-2xl flex justify-between gap-3 items-start border border-transparent dark:border-slate-800 transition-colors">
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-700 leading-normal">{r.remark}</p>
-                            <p className="text-[9px] text-slate-400 mt-1 font-bold">
+                            <p className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-relaxed">{r.remark}</p>
+                            <p className="text-[9px] text-slate-400 mt-1.5 font-bold">
                               {formatRemarkDate(r.timestamp)}{r.addedBy ? ` · ${r.addedBy}` : ''}
                             </p>
                           </div>
@@ -2376,6 +2606,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                             onClick={() => handleDeleteRemark(r._id)}
                             disabled={leadLoading}
                             className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                            title="Delete remark"
                           >
                             <Icons.Trash className="w-3.5 h-3.5" />
                           </button>
@@ -2388,24 +2619,33 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
             )}
 
             {activeTab === 'history' && (
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <p className={labelClass}>Campaign History ({(selectedLead.campaignHistory || []).length})</p>
+              <div className="space-y-5">
+                {/* Campaign History Section */}
+                <div className="space-y-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Campaign History ({(selectedLead.campaignHistory || []).length})
+                  </p>
                   {(selectedLead.campaignHistory || []).length === 0 ? (
-                    <p className="text-center text-slate-400 text-xs italic py-6">No campaign messages sent yet</p>
+                    <p className="text-center text-slate-400 text-xs italic py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      No campaign message sent yet.
+                    </p>
                   ) : (
-                    <div className="space-y-2 max-h-96 overflow-y-auto pr-0.5">
+                    <div className="space-y-2">
                       {[...(selectedLead.campaignHistory || [])].reverse().map((c, i) => (
-                        <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div key={i} className="p-3.5 bg-slate-100/70 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-800 rounded-2xl border border-slate-200/50 dark:border-slate-800 transition-colors">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-black text-slate-800 truncate">{c.campaignName}</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{c.campaignName}</p>
                             {c.repliedAt ? (
-                              <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-green-100 text-green-700">Replied</span>
+                              <span className="flex-shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase bg-[#ede9fe] text-[#7c3aed]">
+                                Replied
+                              </span>
                             ) : (
-                              <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-slate-200 text-slate-500">No reply yet</span>
+                              <span className="flex-shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase bg-slate-200 text-slate-600">
+                                No reply yet
+                              </span>
                             )}
                           </div>
-                          <p className="text-[9px] text-slate-400 mt-1 font-bold">
+                          <p className="text-[9px] text-slate-400 mt-1 font-semibold">
                             Sent {formatRemarkDate(c.sentAt)}{c.repliedAt ? ` · Replied ${formatRemarkDate(c.repliedAt)}` : ''}
                           </p>
                         </div>
@@ -2414,16 +2654,21 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <p className={labelClass}>Conversation History ({(selectedLead.conversations || []).length})</p>
+                {/* Conversation History Section (Extended freely below) */}
+                <div className="space-y-2.5 pb-6">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Conversation History ({(selectedLead.conversations || []).length})
+                  </p>
                   {(selectedLead.conversations || []).length === 0 ? (
-                    <p className="text-center text-slate-400 text-xs italic py-6">No conversation history found</p>
+                    <p className="text-center text-slate-400 text-xs italic py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      No conversation history found
+                    </p>
                   ) : (
-                    <div className="space-y-4 max-h-96 overflow-y-auto pr-0.5">
+                    <div className="p-4 bg-[#f6f3fc] dark:bg-slate-950/70 border border-purple-100/60 dark:border-slate-800 rounded-3xl space-y-4 shadow-xs">
                       {chatTimeline.map((group) => (
                         <div key={group.dayKey} className="space-y-3">
-                          <div className="flex justify-center">
-                            <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-100 uppercase tracking-wide">
+                          <div className="flex justify-center sticky top-0 z-10 py-0.5">
+                            <span className="px-3 py-1 rounded-full bg-white/95 dark:bg-slate-800 text-amber-700 dark:text-amber-300 text-[10px] font-bold border border-amber-200/70 dark:border-amber-700/50 uppercase tracking-wider shadow-2xs">
                               {group.dayLabel}
                             </span>
                           </div>
@@ -2432,18 +2677,32 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                             const timeLabel = formatChatTime(msgDate);
                             return (
                               <div key={`${group.dayKey}-${i}`} className="space-y-2">
-                                <div className="flex flex-col items-end">
-                                  <div className="bg-green-600 text-white p-2.5 rounded-2xl rounded-tr-none text-xs max-w-[90%] shadow-sm leading-relaxed">
-                                    {c.userMsg}
-                                    {timeLabel && <div className="text-[9px] text-green-100 mt-1 text-right">{timeLabel}</div>}
+                                {c.userMsg && (
+                                  <div className="flex flex-col items-end">
+                                    <div className="bg-[#7c3aed] text-white p-3 rounded-2xl rounded-tr-none text-xs max-w-[85%] shadow-xs leading-relaxed font-medium">
+                                      <p>{c.userMsg}</p>
+                                      {timeLabel && (
+                                        <div className="text-[9px] text-purple-200 mt-1 text-right font-normal">
+                                          {timeLabel}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="flex flex-col items-start">
-                                  <div className="bg-slate-100 text-slate-700 p-2.5 rounded-2xl rounded-tl-none text-xs max-w-[90%] border border-slate-200 shadow-sm leading-relaxed">
-                                    {(c.botReply || '').split('\n').map((l, j) => <p key={j} className="mb-1 last:mb-0">{l}</p>)}
-                                    {timeLabel && <div className="text-[9px] text-slate-400 mt-1 text-right">{timeLabel}</div>}
+                                )}
+                                {c.botReply && (
+                                  <div className="flex flex-col items-start">
+                                    <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-3 rounded-2xl rounded-tl-none text-xs max-w-[85%] border border-purple-100/80 dark:border-slate-800 shadow-xs leading-relaxed font-medium">
+                                      {(c.botReply || '').split('\n').map((l, j) => (
+                                        <p key={j} className="mb-1 last:mb-0">{l}</p>
+                                      ))}
+                                      {timeLabel && (
+                                        <div className="text-[9px] text-slate-400 mt-1 text-right font-normal">
+                                          {timeLabel}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
+                                )}
                               </div>
                             );
                           })}
@@ -2457,66 +2716,71 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
           </div>
 
           {/* Panel footer */}
-          <div className="p-5 border-t border-slate-100 bg-slate-50/50 shrink-0">
-            {activeTab === 'fees' && feesDirty && (
-              <button
-                onClick={handleSaveFees}
-                disabled={feesLoading}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 text-white font-black text-sm rounded-xl hover:bg-green-700 transition-all shadow-sm disabled:opacity-50"
-              >
-                {feesLoading ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
-                {feesLoading ? 'Saving...' : 'Save Fees'}
-              </button>
-            )}
-            {activeTab === 'fees' && !feesDirty && (
-              <p className="text-center text-xs text-slate-400">All changes are saved</p>
-            )}
-            {activeTab === 'batch' && !batchEditMode && !selectedLead.batchId && (
-              <button
-                onClick={() => setBatchEditMode(true)}
-                className="w-full py-3 bg-green-600 text-white font-black text-sm rounded-xl hover:bg-green-700 transition-all"
-              >
-                Set Batch Details
-              </button>
-            )}
-            {activeTab === 'cert' && certDirty && (
-              <button
-                onClick={handleSaveCourseCert}
-                disabled={isSavingCert}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 text-white font-black text-sm rounded-xl hover:bg-green-700 transition-all shadow-sm disabled:opacity-50"
-              >
-                {isSavingCert ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : null}
-                {isSavingCert ? 'Saving...' : 'Save Certificate Details'}
-              </button>
-            )}
-            {activeTab === 'cert' && !certDirty && (
-              <p className="text-center text-xs text-slate-400">All changes are saved</p>
-            )}
-          </div>
+          {((activeTab === 'fees') || (activeTab === 'cert') || (activeTab === 'batch' && !batchEditMode && !selectedLead.batchId)) && (
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+              {activeTab === 'fees' && feesDirty && (
+                <button
+                  onClick={handleSaveFees}
+                  disabled={feesLoading}
+                  style={{ color: '#ffffff' }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white !text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50"
+                >
+                  {feesLoading ? <Icons.RefreshCcw className="w-4 h-4 animate-spin text-white" /> : null}
+                  <span className="text-white !text-white font-bold">{feesLoading ? 'Saving...' : 'Save Fees'}</span>
+                </button>
+              )}
+              {activeTab === 'fees' && !feesDirty && (
+                <p className="text-center text-xs text-slate-400">All changes are saved</p>
+              )}
+              {activeTab === 'batch' && !batchEditMode && !selectedLead.batchId && (
+                <button
+                  onClick={() => setBatchEditMode(true)}
+                  style={{ color: '#ffffff' }}
+                  className="w-full py-3.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white !text-white font-bold text-sm rounded-2xl transition-all shadow-sm"
+                >
+                  <span className="text-white !text-white font-bold">Set Batch Details</span>
+                </button>
+              )}
+              {activeTab === 'cert' && certDirty && (
+                <button
+                  onClick={handleSaveCourseCert}
+                  disabled={isSavingCert}
+                  style={{ color: '#ffffff' }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white !text-white font-bold text-sm rounded-2xl transition-all shadow-sm disabled:opacity-50"
+                >
+                  {isSavingCert ? <Icons.RefreshCcw className="w-4 h-4 animate-spin text-white" /> : null}
+                  <span className="text-white !text-white font-bold">{isSavingCert ? 'Saving...' : 'Save Certificate Details'}</span>
+                </button>
+              )}
+              {activeTab === 'cert' && !certDirty && (
+                <p className="text-center text-xs text-slate-400">All changes are saved</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {/* Batch members modal */}
       {batchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setBatchModal(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-black text-slate-800">Batch Members</h2>
-                <p className="text-xs text-slate-500 mt-0.5 font-bold uppercase tracking-wider">{batchModal.code}</p>
+                <h2 className="text-base font-bold text-slate-800 dark:text-white">Batch Members</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-bold uppercase tracking-wider">{batchModal.code}</p>
               </div>
-              <button onClick={() => setBatchModal(null)} className="p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setBatchModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
                 <Icons.X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            <div className="max-h-96 overflow-y-auto divide-y divide-slate-50">
+            <div className="max-h-96 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
               {batchModal.members.map(lead => (
-                <div key={lead._id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50">
-                  <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                <div key={lead._id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                  <div className={`w-8 h-8 rounded-full ${profileColor(lead._id).bg} ${profileColor(lead._id).text} flex items-center justify-center font-bold text-xs flex-shrink-0`}>
                     {(lead.userName || '?').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 truncate flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-slate-800 dark:text-white truncate flex items-center gap-1.5">
                       <span className="truncate">{lead.userName}</span>
                       {lead.respondedAfterFollowUp && (
                         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Responded"></span>
@@ -2533,7 +2797,7 @@ const CourseEnrolledView: React.FC<CourseEnrolledViewProps> = ({
                       setInternalLeads(prev => prev.some(l => l._id === lead._id) ? prev : [...prev, lead]);
                       openInEditMode(lead._id);
                     }}
-                    className="text-xs font-bold text-green-600 hover:underline flex-shrink-0"
+                    className="text-xs font-bold text-blue-600 hover:underline flex-shrink-0"
                   >
                     Manage
                   </button>

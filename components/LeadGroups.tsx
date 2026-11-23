@@ -48,7 +48,7 @@ export const LeadGroupChips: React.FC<LeadGroupChipsProps> = ({ groups, onOpen }
             key={g._id}
             onClick={(e) => { e.stopPropagation(); onOpen(g); }}
             title="View group members"
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tight border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${c.bg} ${c.border} ${c.text}`}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight border cursor-pointer hover:shadow-sm active:scale-95 transition-all ${c.bg} ${c.border} ${c.text}`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
             {g.name}
@@ -106,7 +106,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ open, select
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-800">New Group</h3>
+          <h3 className="text-base font-bold text-slate-800">New Group</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400"><Icons.X className="w-4 h-4" /></button>
         </div>
         <div className="p-4 space-y-4">
@@ -114,7 +114,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ open, select
             {selectedCount} lead{selectedCount !== 1 ? 's' : ''} selected
           </p>
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Group name</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Group name</label>
             <input
               autoFocus
               type="text"
@@ -126,7 +126,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ open, select
             />
           </div>
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Colour</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Colour</label>
             <div className="mt-2"><ColorPicker value={color} onChange={setColor} /></div>
           </div>
         </div>
@@ -200,7 +200,7 @@ export const LeadGroupPopup: React.FC<LeadGroupPopupProps> = ({
 
   const statusPill = (status: string) => {
     const s = (status || '').toLowerCase();
-    return s === 'hot' ? 'bg-red-100 text-red-700' : s === 'warm' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
+    return s === 'hot' ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300' : s === 'warm' ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300' : 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300';
   };
 
   return (
@@ -219,7 +219,7 @@ export const LeadGroupPopup: React.FC<LeadGroupPopupProps> = ({
                 className="px-2 py-1 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
               />
             ) : (
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase border ${c.bg} ${c.border} ${c.text}`}>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${c.bg} ${c.border} ${c.text}`}>
                 <span className={`w-2 h-2 rounded-full ${c.dot}`} />
                 {group.name}
               </span>
@@ -275,7 +275,7 @@ export const LeadGroupPopup: React.FC<LeadGroupPopupProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-bold text-slate-800 truncate">{m.userName}</span>
-                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase ${statusPill(m.status)}`}>{m.status}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase ${statusPill(m.status)}`}>{m.status}</span>
                     </div>
                     <p className="text-[10px] text-slate-500 truncate">
                       {m.userNumber}
@@ -360,7 +360,7 @@ export const GroupsPanel: React.FC<GroupsPanelProps> = ({ groups, onOpen, onNewG
     <div className="fixed inset-0 z-[55] flex items-start justify-center p-4 pt-24 bg-black/30 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-800">Lead Groups</h3>
+          <h3 className="text-base font-bold text-slate-800">Lead Groups</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400"><Icons.X className="w-4 h-4" /></button>
         </div>
         <div className="p-3">

@@ -114,143 +114,184 @@ const BulkMsgView: React.FC<Props> = ({ currentUser }) => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
-      <div>
-        <h3 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">Bulk WhatsApp Campaign</h3>
-        <p className="text-sm text-slate-500">Upload an Excel of new contacts, send a WhatsApp campaign, and they'll automatically become leads once they reply.</p>
-      </div>
+    <div className="flex-1 min-h-0 min-w-0 overflow-y-auto p-3 sm:p-6 text-slate-700 flex flex-col">
+      <div className="max-w-7xl w-full mx-auto space-y-5">
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-5">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase">1. Upload Excel</label>
-          <p className="text-[11px] text-slate-400 mb-2">A "Phone"/"Number" column is required; a "Name" column is optional.</p>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileChange} />
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-bold text-sm transition-all border border-emerald-200"
-            >
-              <Icons.Upload className="w-4 h-4" />
-              <span>Choose File</span>
-            </button>
-            {fileName && (
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Icons.FileText className="w-4 h-4 text-slate-400" />
-                <span className="font-semibold">{fileName}</span>
-                <span className="text-slate-400">({contacts.length} contact{contacts.length === 1 ? '' : 's'})</span>
-                <button onClick={clearUpload} className="text-slate-400 hover:text-red-500"><Icons.X className="w-4 h-4" /></button>
-              </div>
-            )}
+      
+
+        {/* ── Bulk WhatsApp Title Banner ── */}
+        <div className="flex items-center gap-3 px-1 py-1">
+          <div className="text-[#25D366] shrink-0">
+            <Icons.WhatsApp className="w-7 h-7" />
           </div>
-        </div>
-
-        {contacts.length > 0 && (
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
-            <div className="max-h-48 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 sticky top-0">
-                  <tr>
-                    <th className="text-left px-3 py-2 text-[10px] font-black text-slate-400 uppercase">Name</th>
-                    <th className="text-left px-3 py-2 text-[10px] font-black text-slate-400 uppercase">Number</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contacts.slice(0, 50).map((c, i) => (
-                    <tr key={i} className="border-t border-slate-100">
-                      <td className="px-3 py-1.5 text-slate-600">{c.userName || <span className="text-slate-300">-</span>}</td>
-                      <td className="px-3 py-1.5 text-slate-800 font-semibold">{c.userNumber}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {contacts.length > 50 && (
-              <div className="px-3 py-1.5 bg-slate-50 text-[11px] text-slate-400 border-t border-slate-100">…and {contacts.length - 50} more</div>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase">2. Campaign Name</label>
-          <input
-            list="bulk-campaign-name-options"
-            value={campaignName}
-            onChange={(e) => setCampaignName(e.target.value)}
-            placeholder="e.g. August Cold Outreach"
-            disabled={isSending}
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-          />
-          <datalist id="bulk-campaign-name-options">
-            {campaignNames.map(name => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase">3. Message</label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Enter your campaign message here..."
-            disabled={isSending}
-            className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all resize-none"
-          />
-        </div>
-
-        <button
-          onClick={handleSend}
-          disabled={!contacts.length || !message.trim() || !campaignName.trim() || isSending}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white font-black rounded-lg hover:bg-emerald-700 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-        >
-          {isSending && <Icons.RefreshCcw className="w-4 h-4 animate-spin" />}
-          <span>{isSending ? 'Sending...' : `Send to ${contacts.length} Contact${contacts.length === 1 ? '' : 's'}`}</span>
-        </button>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h4 className="font-black text-slate-800">Prospects Awaiting Reply</h4>
-            <p className="text-xs text-slate-400">Contacts sent a campaign message but not yet replied. Once they reply, they become a lead and drop off this list.</p>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Bulk WhatsApp</h1>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Upload an Excel of new contacts, send a WhatsApp campaign, and they'll automatically become leads once they reply.
+            </p>
           </div>
-          <button onClick={loadProspects} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700" title="Refresh">
-            <Icons.RefreshCcw className={`w-4 h-4 ${isLoadingProspects ? 'animate-spin' : ''}`} />
-          </button>
         </div>
-        {tempLeads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-            <Icons.Chat className="w-12 h-12 opacity-10 mb-3" />
-            <p className="text-sm font-bold">No prospects waiting</p>
+
+        {/* ── Main Form Container (Redesigned according to reference image) ── */}
+        <div className="bg-white rounded-3xl border border-white shadow-sm p-5 sm:p-8 space-y-6">
+          
+          {/* 1. Upload Excel */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-slate-800">1. Upload Excel</h3>
+            <p className="text-[11px] text-slate-400">
+              A "Phone"/"Number" column is required; a "Name" column is optional.
+            </p>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileChange} />
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#f0fdf4] dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-900/60 text-[#15803d] dark:text-green-300 font-bold text-xs rounded-xl border border-green-200/80 dark:border-green-800/80 transition-all shadow-2xs cursor-pointer"
+              >
+                <Icons.Upload className="w-4 h-4 text-[#15803d] dark:text-green-300" />
+                <span>Choose File</span>
+              </button>
+              {fileName && (
+                <div className="flex items-center gap-2 text-xs text-[#15803d] dark:text-green-300 bg-[#f0fdf4] dark:bg-green-950/40 px-3 py-2 rounded-xl border border-green-200/80 dark:border-green-800/80">
+                  <Icons.FileText className="w-4 h-4 text-[#25D366]" />
+                  <span className="font-semibold">{fileName}</span>
+                  <span className="text-[#15803d]/70 dark:text-green-400/70">({contacts.length} contact{contacts.length === 1 ? '' : 's'})</span>
+                  <button onClick={clearUpload} className="text-slate-400 hover:text-red-500 ml-1 cursor-pointer"><Icons.X className="w-4 h-4" /></button>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="text-left px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Name</th>
-                  <th className="text-left px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Number</th>
-                  <th className="text-left px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Campaign</th>
-                  <th className="text-left px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Sent</th>
-                  <th className="text-left px-4 py-2 text-[10px] font-black text-slate-400 uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tempLeads.map(t => (
-                  <tr key={t._id} className="border-t border-slate-100">
-                    <td className="px-4 py-2 text-slate-700 font-semibold">{t.userName}</td>
-                    <td className="px-4 py-2 text-slate-600">{t.userNumber}</td>
-                    <td className="px-4 py-2 text-slate-600">{t.campaignName}</td>
-                    <td className="px-4 py-2 text-slate-500 text-xs">{formatDate(t.sentAt)}</td>
-                    <td className="px-4 py-2">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${t.status === 'sent' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{t.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* Uploaded Contacts Preview Table */}
+          {contacts.length > 0 && (
+            <div className="border border-slate-200 rounded-2xl overflow-hidden max-w-xl">
+              <div className="max-h-48 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50 sticky top-0">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Name</th>
+                      <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Number</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacts.slice(0, 50).map((c, i) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-3 py-1.5 text-slate-600">{c.userName || <span className="text-slate-300">-</span>}</td>
+                        <td className="px-3 py-1.5 text-slate-800 font-semibold">{c.userNumber}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {contacts.length > 50 && (
+                <div className="px-3 py-1.5 bg-slate-50 text-[11px] text-slate-400 border-t border-slate-100">…and {contacts.length - 50} more</div>
+              )}
+            </div>
+          )}
+
+          {/* 2. Campaign Name */}
+          <div className="space-y-2 pt-2">
+            <h3 className="text-sm font-bold text-slate-800">2. Campaign Name</h3>
+            <input
+              list="bulk-campaign-name-options"
+              value={campaignName}
+              onChange={(e) => setCampaignName(e.target.value)}
+              placeholder="e.g. August Cold Outreach"
+              disabled={isSending}
+              className="w-full max-w-xl p-3 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-[#25D366]/30 focus:border-[#25D366] transition-all"
+            />
+            <datalist id="bulk-campaign-name-options">
+              {campaignNames.map(name => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
           </div>
-        )}
+
+          {/* 3. Message */}
+          <div className="space-y-2 pt-2">
+            <h3 className="text-sm font-bold text-slate-800">3. Message</h3>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Enter your campaign message here..."
+              disabled={isSending}
+              className="w-full max-w-xl h-32 p-3 sm:p-4 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-[#25D366]/30 focus:border-[#25D366] transition-all resize-none"
+            />
+          </div>
+
+          {/* Send Button */}
+          <div className="pt-2">
+            <button
+              onClick={handleSend}
+              disabled={!contacts.length || !message.trim() || !campaignName.trim() || isSending}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all disabled:bg-slate-100 dark:disabled:bg-slate-800/80 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:border disabled:border-slate-200 dark:disabled:border-slate-700 disabled:shadow-none disabled:cursor-not-allowed bg-[#16a34a] hover:bg-[#15803d] active:bg-[#166534] text-white shadow-xs hover:shadow-md cursor-pointer"
+            >
+              {isSending ? (
+                <Icons.RefreshCcw className="w-4 h-4 animate-spin text-current" />
+              ) : (
+                <Icons.Send className="w-4 h-4 text-current" />
+              )}
+              <span>{isSending ? 'Sending...' : `Send to ${contacts.length} Contact${contacts.length === 1 ? '' : 's'}`}</span>
+            </button>
+          </div>
+
+          {/* ── Prospects Awaiting Reply Section ── */}
+          <div className="pt-4">
+            <div className="border border-slate-200 rounded-2xl p-5 space-y-3 bg-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">Prospects Awaiting Reply</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                    Contacts sent a campaign message but not yet replied. Once they reply, they become a lead and drop off this list.
+                  </p>
+                </div>
+                <button 
+                  onClick={loadProspects} 
+                  className="p-2 hover:bg-green-50 dark:hover:bg-green-950/40 rounded-xl text-slate-400 hover:text-[#15803d] dark:hover:text-green-400 transition-colors cursor-pointer" 
+                  title="Refresh"
+                >
+                  <Icons.RefreshCcw className={`w-4 h-4 ${isLoadingProspects ? 'animate-spin text-[#25D366]' : ''}`} />
+                </button>
+              </div>
+
+              {tempLeads.length === 0 ? (
+                <div className="py-6 text-slate-300 text-center text-xs">
+                  {/* Empty space matching reference image container */}
+                </div>
+              ) : (
+                <div className="overflow-x-auto pt-2">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Name</th>
+                        <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Number</th>
+                        <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Campaign</th>
+                        <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Sent</th>
+                        <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tempLeads.map(t => (
+                        <tr key={t._id} className="border-t border-slate-100">
+                          <td className="px-3 py-2 text-slate-700 text-[14px] font-semibold">{t.userName}</td>
+                          <td className="px-3 py-2 text-slate-600">{t.userNumber}</td>
+                          <td className="px-3 py-2 text-slate-600">{t.campaignName}</td>
+                          <td className="px-3 py-2 text-slate-500 text-[11px]">{formatDate(t.sentAt)}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${t.status === 'sent' ? 'bg-[#f0fdf4] dark:bg-green-950/50 text-[#15803d] dark:text-green-300 border border-green-200/80 dark:border-green-800' : 'bg-red-50 text-red-600'}`}>
+                              {t.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   );

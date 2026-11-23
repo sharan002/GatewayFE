@@ -16,9 +16,9 @@ interface Props {
 
 // Production: socket server sits at the root domain; nginx proxies /crmapi/* to the backend.
 // For local dev, set both to http://localhost:4000 and '' respectively.
-const SOCKET_URL = 'https://ask4people.in';
-const SOCKET_PATH = '/crmapi/socket.io';
-const API_BASE = 'https://ask4people.in/crmapi';
+const SOCKET_URL = 'https://gateway.botkovai.in';
+const SOCKET_PATH = '/crmgateway/socket.io';
+const API_BASE = 'https://gateway.botkovai.in/crmgateway';
 
 // Dev overrides (uncomment when running locally):
 // const SOCKET_URL = 'http://localhost:4000';
@@ -166,7 +166,7 @@ const GroupChatView: React.FC<Props> = ({ currentUser }) => {
                 <div className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} ${isSameSenderAsPrev ? 'mt-0.5' : 'mt-3'}`}>
                   {/* Avatar — only show for others, hide when same sender continues */}
                   {!isMe && (
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white shrink-0 uppercase transition-opacity ${isSameSenderAsPrev ? 'opacity-0' : ''} ${avatarColor(msg.sender)}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 uppercase transition-opacity ${isSameSenderAsPrev ? 'opacity-0' : ''} ${avatarColor(msg.sender)}`}>
                       {msg.sender.charAt(0)}
                     </div>
                   )}

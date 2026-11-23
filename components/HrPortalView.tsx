@@ -126,7 +126,7 @@ const fmtSize = (n?: number): string => {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 };
 
-// ── Inline paper-clip icon (Icons.tsx is intentionally left untouched) ──────
+// ── Inline paper-clip icon ────────────────────────────────────────────────
 const Clip = ({ className = '' }: { className?: string }) => (
   <svg
     viewBox="0 0 24 24"
@@ -151,9 +151,9 @@ const Field = ({
   action?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="flex flex-col gap-1">
-    <div className="flex items-center justify-between gap-2 min-h-[16px]">
-      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</span>
+  <div className="flex flex-col gap-1.5">
+    <div className="flex items-center justify-between gap-2 min-h-[18px]">
+      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</span>
       {action}
     </div>
     {children}
@@ -161,7 +161,7 @@ const Field = ({
 );
 
 const inputCls =
-  'w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400';
+  'w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-xs font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-[#be185d] dark:focus:border-[#ec4899] hover:border-slate-300 dark:hover:border-slate-600 transition-all';
 
 // ═══════════════════════════════════════════════════════════════════════════
 const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string } | null }> = () => {
@@ -396,7 +396,6 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
     if (!file || !editingId || !slotType) return;
     setSlotBusy(slotType);
     try {
-      // one document per slot: replace any existing
       for (const d of docsByType(slotType)) {
         await apiService.hrDeleteDocument(editingId, d._id);
       }
@@ -516,49 +515,50 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
     const doc = docs[0];
     const busy = slotBusy === slotType;
     return (
-      <span className="flex items-center gap-1">
+      <span className="inline-flex items-center">
         {doc ? (
-          <>
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px]">
             <button
               type="button"
               onClick={() => openPreview(doc)}
               title="Preview attached document"
-              className="flex items-center gap-1 text-[11px] font-bold text-green-600 hover:text-green-700"
+              className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 transition-colors"
             >
-              <Icons.Check className="w-3.5 h-3.5" /> Preview
+              <Icons.Check className="w-3 h-3" /> Attached
             </button>
+            <span className="text-emerald-300 dark:text-emerald-800">|</span>
             <button
               type="button"
               onClick={() => pickForSlot(slotType)}
               disabled={busy}
               title="Replace document"
-              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"
+              className="p-0.5 rounded text-slate-400 hover:text-[#be185d] dark:hover:text-pink-400 hover:bg-white/80 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              {busy ? <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Icons.Upload className="w-3.5 h-3.5" />}
+              {busy ? <Icons.RefreshCcw className="w-3 h-3 animate-spin" /> : <Icons.Upload className="w-3 h-3" />}
             </button>
             <button
               type="button"
               onClick={() => removeDoc(doc)}
               title="Remove document"
-              className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+              className="p-0.5 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white/80 dark:hover:bg-slate-800 transition-colors"
             >
-              <Icons.Trash className="w-3.5 h-3.5" />
+              <Icons.Trash className="w-3 h-3" />
             </button>
-          </>
+          </span>
         ) : (
           <button
             type="button"
             onClick={() => pickForSlot(slotType)}
             disabled={busy}
             title={editingId ? 'Attach a document' : 'Create the employee first'}
-            className="flex items-center gap-1 p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 hover:bg-[#fdf2f8] hover:text-[#be185d] dark:hover:bg-pink-950/50 dark:hover:text-pink-300 border border-slate-200/80 dark:border-slate-700 transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
           >
             {busy ? (
-              <Icons.RefreshCcw className="w-4 h-4 animate-spin" />
+              <Icons.RefreshCcw className="w-3 h-3 animate-spin" />
             ) : (
-              <Clip className="w-4 h-4" />
+              <Clip className="w-3.5 h-3.5 text-slate-400" />
             )}
-            <span className="text-[11px] font-bold">Attach</span>
+            <span>Attach</span>
           </button>
         )}
       </span>
@@ -567,246 +567,241 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
 
   // ═══════════════════════════ RENDER ═══════════════════════════
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+    <div className="flex-1 min-h-0 min-w-0 overflow-y-auto bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 transition-colors">
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[10002] bg-slate-800 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-2xl">
+        <div className="fixed bottom-6 right-6 z-[10002] bg-slate-800 text-white text-xs font-semibold px-5 py-3 rounded-xl shadow-2xl">
           {toast}
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
-              <Icons.User className="w-6 h-6 text-indigo-600" /> HR Portal
-            </h1>
-            <p className="text-sm text-slate-500">Employee records &amp; document management.</p>
-          </div>
-          <button
-            onClick={openNew}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors"
-          >
-            <Icons.Plus className="w-4 h-4" /> Add Employee
-          </button>
+      {/* Top Header Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">HR Portal</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Employee records &amp; document management.</p>
         </div>
+        <button
+          onClick={openNew}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#be185d] hover:bg-[#9d174d] text-white text-xs font-bold transition shadow-xs"
+        >
+          <Icons.Plus className="w-4 h-4" /> Add Employee
+        </button>
+      </div>
 
-        {/* Search */}
-        <div className="relative mb-4 max-w-md">
-          <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, designation, phone, ID…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, designation, phone, ID…"
+          className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-[#be185d] shadow-2xs"
+        />
+      </div>
+
+      {/* Employee List Grid */}
+      {loading ? (
+        <div className="py-20 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <Icons.RefreshCcw className="w-6 h-6 animate-spin mx-auto mb-2" /> Loading…
         </div>
-
-        {/* List */}
-        {loading ? (
-          <div className="py-20 text-center text-slate-400">
-            <Icons.RefreshCcw className="w-6 h-6 animate-spin mx-auto mb-2" /> Loading…
-          </div>
-        ) : list.length === 0 ? (
-          <div className="py-20 text-center text-slate-400">
-            <Icons.User className="w-14 h-14 mx-auto mb-3 opacity-20" />
-            <p className="font-bold">No employees yet</p>
-            <p className="text-sm opacity-70">Click “Add Employee” to create the first record.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {list.map((e) => (
-              <div
-                key={e._id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all p-4 flex flex-col gap-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="font-black text-slate-800 truncate">{e.name}</h3>
-                    <p className="text-xs text-slate-500 truncate">{e.designation || '—'}</p>
+      ) : list.length === 0 ? (
+        <div className="py-20 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <Icons.User className="w-12 h-12 mx-auto mb-3 opacity-20" />
+          <p className="font-bold text-sm text-slate-600 dark:text-slate-300">No employees yet</p>
+          <p className="text-xs opacity-70 mt-1">Click “Add Employee” to create the first record.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {list.map((e) => (
+            <div
+              key={e._id}
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-pink-200 dark:hover:border-pink-900/60 transition-all p-4 flex flex-col justify-between gap-3"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#fdf2f8] dark:bg-pink-950/60 text-[#be185d] dark:text-pink-300 font-extrabold flex items-center justify-center text-sm shrink-0 border border-pink-100 dark:border-pink-900/50">
+                      {e.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm truncate">{e.name}</h3>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium truncate">{e.designation || '—'}</p>
+                    </div>
                   </div>
                   {!e.active && (
-                    <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded">
                       Inactive
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-slate-500 space-y-1">
+
+                <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1.5 font-medium">
                   {e.email && (
-                    <div className="flex items-center gap-1.5 truncate">
-                      <Icons.FileText className="w-3.5 h-3.5 flex-shrink-0" /> {e.email}
+                    <div className="flex items-center gap-2 truncate">
+                      <Icons.FileText className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /> {e.email}
                     </div>
                   )}
                   {e.contactNumber && (
-                    <div className="flex items-center gap-1.5">
-                      <Icons.Phone className="w-3.5 h-3.5 flex-shrink-0" /> {e.contactNumber}
+                    <div className="flex items-center gap-2">
+                      <Icons.Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /> {e.contactNumber}
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5">
-                    <Icons.Calendar className="w-3.5 h-3.5 flex-shrink-0" /> Joined {fmtDate(e.dateOfJoining)}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                  <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-                    <Icons.FileText className="w-3.5 h-3.5" /> {e.documentCount || 0} docs
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => openEdit(e._id)}
-                      className="p-2 rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                      title="Open"
-                    >
-                      <Icons.Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(e._id, e.name)}
-                      className="p-2 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title="Delete"
-                    >
-                      <Icons.Trash className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <Icons.Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" /> Joined {fmtDate(e.dateOfJoining)}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800 text-xs">
+                <span className="text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1.5">
+                  <Icons.FileText className="w-3.5 h-3.5 text-slate-400" /> {e.documentCount || 0} Documents
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => openEdit(e._id)}
+                    className="p-1.5 rounded-lg text-[#be185d] dark:text-pink-400 hover:bg-[#fdf2f8] dark:hover:bg-pink-950/40 transition-colors"
+                    title="Edit"
+                  >
+                    <Icons.Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(e._id, e.name)}
+                    className="p-1.5 rounded-lg text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    title="Delete"
+                  >
+                    <Icons.Trash className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Editor modal ──────────────────────────────────────────── */}
       {editorOpen && (
-        <div className="fixed inset-0 z-[10000] bg-black/40 flex items-stretch sm:items-center justify-center sm:p-4">
-          <div className="bg-slate-50 w-full sm:max-w-4xl sm:rounded-2xl shadow-2xl flex flex-col sm:max-h-[92vh] overflow-hidden">
-            {/* modal header (always visible) */}
-            <div className="bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-black text-slate-800 truncate pr-3">
-                {editingId ? form.name || 'Edit Employee' : 'New Employee'}
-              </h2>
+        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-xs flex items-stretch sm:items-center justify-center sm:p-4">
+          <div className="bg-white dark:bg-slate-900 w-full sm:max-w-4xl sm:rounded-2xl shadow-2xl flex flex-col sm:max-h-[92vh] overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#be185d] to-[#ec4899] text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                  {form.name ? form.name.trim().charAt(0).toUpperCase() : <Icons.User className="w-5 h-5" />}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 truncate">
+                      {editingId ? form.name || 'Edit Employee' : 'New Employee'}
+                    </h2>
+                    {form.active !== undefined && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          form.active
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}
+                      >
+                        {form.active ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 font-medium truncate">
+                    {form.designation ? `${form.designation} • ` : ''}{editingId ? 'Employee Profile & Documents' : 'Fill details to add employee'}
+                  </p>
+                </div>
+              </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#be185d] hover:bg-[#9d174d] text-white text-xs font-bold disabled:opacity-60 shadow-xs hover:shadow transition-all"
                 >
-                  {saving ? <Icons.RefreshCcw className="w-4 h-4 animate-spin" /> : <Icons.Check className="w-4 h-4" />}
+                  {saving ? <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Icons.Check className="w-3.5 h-3.5" />}
                   {editingId ? 'Save' : 'Create'}
                 </button>
-                <button onClick={closeEditor} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+                <button onClick={closeEditor} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                   <Icons.X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* error bar (always visible, between header and scrolling body) */}
             {editorError && (
-              <div className="shrink-0 bg-red-50 border-b border-red-200 text-red-700 text-sm font-semibold px-5 py-2.5 flex items-center justify-between gap-3">
+              <div className="shrink-0 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs font-bold px-5 py-2.5 flex items-center justify-between gap-3">
                 <span>{editorError}</span>
-                <button onClick={() => setEditorError('')} className="p-1 rounded hover:bg-red-100 shrink-0">
-                  <Icons.X className="w-4 h-4" />
+                <button onClick={() => setEditorError('')} className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 shrink-0">
+                  <Icons.X className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
 
-            <div ref={bodyRef} className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div ref={bodyRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/70 dark:bg-slate-950/70">
               {/* Photo + basics */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex flex-col sm:flex-row gap-5">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-28 h-28 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Basic Information</h3>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-6">
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="w-24 h-24 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center">
                       {photoUrl ? (
                         <img src={photoUrl} alt="employee" className="w-full h-full object-cover" />
                       ) : (
-                        <Icons.User className="w-10 h-10 text-slate-300" />
+                        <Icons.User className="w-8 h-8 text-slate-300 dark:text-slate-600" />
                       )}
                     </div>
                     <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoPick} />
                     <button
+                      type="button"
                       onClick={() => photoInputRef.current?.click()}
                       disabled={!editingId || uploadingPhoto}
-                      className="text-xs font-bold text-indigo-600 hover:underline disabled:text-slate-400 disabled:no-underline flex items-center gap-1"
-                      title={!editingId ? 'Save the employee first' : ''}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#be185d] dark:text-pink-300 bg-[#fdf2f8] dark:bg-pink-950/40 hover:bg-pink-100 dark:hover:bg-pink-900/40 disabled:text-slate-400 disabled:bg-slate-100 dark:disabled:bg-slate-800 transition-colors"
                     >
-                      {uploadingPhoto ? (
-                        <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Icons.Upload className="w-3.5 h-3.5" />
-                      )}
+                      {uploadingPhoto ? <Icons.RefreshCcw className="w-3 h-3 animate-spin" /> : <Icons.Upload className="w-3 h-3" />}
                       {photoUrl ? 'Change photo' : 'Upload photo'}
                     </button>
                   </div>
 
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <Field label="Name *">
                       <input className={inputCls} value={form.name || ''} onChange={(e) => setField('name', e.target.value)} />
                     </Field>
                     <Field label="Designation">
-                      <input
-                        className={inputCls}
-                        value={form.designation || ''}
-                        onChange={(e) => setField('designation', e.target.value)}
-                      />
+                      <input className={inputCls} value={form.designation || ''} onChange={(e) => setField('designation', e.target.value)} />
                     </Field>
                     <Field label="Date of Birth">
-                      <input
-                        type="date"
-                        className={inputCls}
-                        value={(form.dateOfBirth as string) || ''}
-                        onChange={(e) => setField('dateOfBirth', e.target.value)}
-                      />
+                      <input type="date" className={inputCls} value={(form.dateOfBirth as string) || ''} onChange={(e) => setField('dateOfBirth', e.target.value)} />
                     </Field>
                     <Field label="Date of Joining">
-                      <input
-                        type="date"
-                        className={inputCls}
-                        value={(form.dateOfJoining as string) || ''}
-                        onChange={(e) => setField('dateOfJoining', e.target.value)}
-                      />
+                      <input type="date" className={inputCls} value={(form.dateOfJoining as string) || ''} onChange={(e) => setField('dateOfJoining', e.target.value)} />
                     </Field>
                     <Field label="Sex">
                       <select className={inputCls} value={form.sex || ''} onChange={(e) => setField('sex', e.target.value)}>
-                        <option value="">—</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
+                        <option value="" className="dark:bg-slate-900">—</option>
+                        <option value="male" className="dark:bg-slate-900">Male</option>
+                        <option value="female" className="dark:bg-slate-900">Female</option>
                       </select>
                     </Field>
                     <Field label="Age">
-                      <input
-                        type="number"
-                        min={0}
-                        className={inputCls}
-                        value={form.age ?? ''}
-                        onChange={(e) => setField('age', e.target.value === '' ? null : Number(e.target.value))}
-                      />
+                      <input type="number" min={0} className={inputCls} value={form.age ?? ''} onChange={(e) => setField('age', e.target.value === '' ? null : Number(e.target.value))} />
                     </Field>
                     <Field label="Marital Status">
-                      <select
-                        className={inputCls}
-                        value={form.maritalStatus || ''}
-                        onChange={(e) => setField('maritalStatus', e.target.value)}
-                      >
-                        <option value="">—</option>
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Widowed">Widowed</option>
+                      <select className={inputCls} value={form.maritalStatus || ''} onChange={(e) => setField('maritalStatus', e.target.value)}>
+                        <option value="" className="dark:bg-slate-900">—</option>
+                        <option value="Single" className="dark:bg-slate-900">Single</option>
+                        <option value="Married" className="dark:bg-slate-900">Married</option>
+                        <option value="Divorced" className="dark:bg-slate-900">Divorced</option>
+                        <option value="Widowed" className="dark:bg-slate-900">Widowed</option>
                       </select>
                     </Field>
                     <Field label="Blood Group">
-                      <input
-                        className={inputCls}
-                        value={form.bloodGroup || ''}
-                        onChange={(e) => setField('bloodGroup', e.target.value)}
-                        placeholder="e.g. O+"
-                      />
+                      <input className={inputCls} value={form.bloodGroup || ''} onChange={(e) => setField('bloodGroup', e.target.value)} placeholder="e.g. O+" />
                     </Field>
                     <Field label="Active">
-                      <select
-                        className={inputCls}
-                        value={form.active === false ? 'no' : 'yes'}
-                        onChange={(e) => setField('active', e.target.value === 'yes')}
-                      >
-                        <option value="yes">Active</option>
-                        <option value="no">Inactive</option>
+                      <select className={inputCls} value={form.active === false ? 'no' : 'yes'} onChange={(e) => setField('active', e.target.value === 'yes')}>
+                        <option value="yes" className="dark:bg-slate-900">Active</option>
+                        <option value="no" className="dark:bg-slate-900">Inactive</option>
                       </select>
                     </Field>
                   </div>
@@ -814,119 +809,91 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
               </section>
 
               {/* Contact & IDs */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
-                <h3 className="text-sm font-black text-slate-700 mb-3">Contact &amp; Identification</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Contact &amp; Identification</h3>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Email">
                     <input className={inputCls} value={form.email || ''} onChange={(e) => setField('email', e.target.value)} />
                   </Field>
                   <Field label="ID Card Number">
-                    <input
-                      className={inputCls}
-                      value={form.idCardNumber || ''}
-                      onChange={(e) => setField('idCardNumber', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.idCardNumber || ''} onChange={(e) => setField('idCardNumber', e.target.value)} />
                   </Field>
                   <Field label="Contact Number">
-                    <input
-                      className={inputCls}
-                      value={form.contactNumber || ''}
-                      onChange={(e) => setField('contactNumber', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.contactNumber || ''} onChange={(e) => setField('contactNumber', e.target.value)} />
                   </Field>
                   <Field label="Emergency Contact Number">
-                    <input
-                      className={inputCls}
-                      value={form.emergencyContactNumber || ''}
-                      onChange={(e) => setField('emergencyContactNumber', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.emergencyContactNumber || ''} onChange={(e) => setField('emergencyContactNumber', e.target.value)} />
                   </Field>
                   <Field label="Aadhar Card Number" action={<SlotButton slotType={SLOT.aadhar} />}>
-                    <input
-                      className={inputCls}
-                      value={form.aadharNumber || ''}
-                      onChange={(e) => setField('aadharNumber', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.aadharNumber || ''} onChange={(e) => setField('aadharNumber', e.target.value)} />
                   </Field>
                   <Field label="PAN Card Number" action={<SlotButton slotType={SLOT.pan} />}>
-                    <input
-                      className={inputCls}
-                      value={form.panNumber || ''}
-                      onChange={(e) => setField('panNumber', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.panNumber || ''} onChange={(e) => setField('panNumber', e.target.value)} />
                   </Field>
                 </div>
               </section>
 
               {/* Bank details */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-                  <h3 className="text-sm font-black text-slate-700">Bank Details</h3>
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Bank Details</h3>
+                  </div>
                   <SlotButton slotType={SLOT.bank} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <Field label="Account Holder Name">
-                    <input
-                      className={inputCls}
-                      value={form.bankDetails?.accountHolderName || ''}
-                      onChange={(e) => setBank('accountHolderName', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.bankDetails?.accountHolderName || ''} onChange={(e) => setBank('accountHolderName', e.target.value)} />
                   </Field>
                   <Field label="Account Number">
-                    <input
-                      className={inputCls}
-                      value={form.bankDetails?.accountNumber || ''}
-                      onChange={(e) => setBank('accountNumber', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.bankDetails?.accountNumber || ''} onChange={(e) => setBank('accountNumber', e.target.value)} />
                   </Field>
                   <Field label="Bank Name">
-                    <input
-                      className={inputCls}
-                      value={form.bankDetails?.bankName || ''}
-                      onChange={(e) => setBank('bankName', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.bankDetails?.bankName || ''} onChange={(e) => setBank('bankName', e.target.value)} />
                   </Field>
                   <Field label="Branch">
-                    <input
-                      className={inputCls}
-                      value={form.bankDetails?.branch || ''}
-                      onChange={(e) => setBank('branch', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.bankDetails?.branch || ''} onChange={(e) => setBank('branch', e.target.value)} />
                   </Field>
                   <Field label="IFSC">
-                    <input
-                      className={inputCls}
-                      value={form.bankDetails?.ifsc || ''}
-                      onChange={(e) => setBank('ifsc', e.target.value)}
-                    />
+                    <input className={inputCls} value={form.bankDetails?.ifsc || ''} onChange={(e) => setBank('ifsc', e.target.value)} />
                   </Field>
                 </div>
               </section>
 
               {/* Previous organizations */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-                  <h3 className="text-sm font-black text-slate-700">Previous Organization Details</h3>
-                  <div className="flex items-center gap-3">
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Previous Organization Details</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <SlotButton slotType={SLOT.prevOrg} />
-                    <button onClick={addOrg} className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={addOrg}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#be185d] dark:text-pink-300 bg-[#fdf2f8] dark:bg-pink-950/40 hover:bg-pink-100 dark:hover:bg-pink-900/40 border border-pink-200/70 dark:border-pink-900/60 transition-all cursor-pointer"
+                    >
                       <Icons.Plus className="w-3.5 h-3.5" /> Add
                     </button>
                   </div>
                 </div>
                 {(form.previousOrganizations || []).length === 0 && (
-                  <p className="text-xs text-slate-400">No previous organizations added.</p>
+                  <p className="text-xs text-slate-400 italic">No previous organizations added.</p>
                 )}
                 <div className="space-y-3">
                   {(form.previousOrganizations || []).map((o, i) => (
-                    <div key={i} className="border border-slate-200 rounded-lg p-3 relative">
-                      <button
-                        onClick={() => rmOrg(i)}
-                        className="absolute top-2 right-2 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
-                      >
+                    <div key={i} className="border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 relative bg-slate-50/70 dark:bg-slate-950/60">
+                      <button onClick={() => rmOrg(i)} className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors">
                         <Icons.Trash className="w-3.5 h-3.5" />
                       </button>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <Field label="Organization">
                           <input className={inputCls} value={o.organization || ''} onChange={(e) => setOrg(i, 'organization', e.target.value)} />
                         </Field>
@@ -952,27 +919,31 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
               </section>
 
               {/* Education */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-                  <h3 className="text-sm font-black text-slate-700">Educational Details</h3>
-                  <div className="flex items-center gap-3">
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Educational Details</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <SlotButton slotType={SLOT.education} />
-                    <button onClick={addEdu} className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={addEdu}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#be185d] dark:text-pink-300 bg-[#fdf2f8] dark:bg-pink-950/40 hover:bg-pink-100 dark:hover:bg-pink-900/40 border border-pink-200/70 dark:border-pink-900/60 transition-all cursor-pointer"
+                    >
                       <Icons.Plus className="w-3.5 h-3.5" /> Add
                     </button>
                   </div>
                 </div>
-                {(form.education || []).length === 0 && <p className="text-xs text-slate-400">No education records added.</p>}
+                {(form.education || []).length === 0 && <p className="text-xs text-slate-400 italic">No education records added.</p>}
                 <div className="space-y-3">
                   {(form.education || []).map((ed, i) => (
-                    <div key={i} className="border border-slate-200 rounded-lg p-3 relative">
-                      <button
-                        onClick={() => rmEdu(i)}
-                        className="absolute top-2 right-2 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
-                      >
+                    <div key={i} className="border border-slate-200/90 dark:border-slate-800 rounded-xl p-4 relative bg-slate-50/70 dark:bg-slate-950/60">
+                      <button onClick={() => rmEdu(i)} className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors">
                         <Icons.Trash className="w-3.5 h-3.5" />
                       </button>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         <Field label="Qualification">
                           <input className={inputCls} value={ed.qualification || ''} onChange={(e) => setEdu(i, 'qualification', e.target.value)} placeholder="e.g. B.E CSE" />
                         </Field>
@@ -995,33 +966,42 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
               </section>
 
               {/* Notes */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Notes &amp; Remarks</h3>
+                  </div>
+                </div>
                 <Field label="Notes">
                   <textarea
                     className={inputCls}
                     rows={3}
                     value={form.notes || ''}
                     onChange={(e) => setField('notes', e.target.value)}
+                    placeholder="Add any relevant notes or employee remarks..."
                   />
                 </Field>
               </section>
 
               {/* Additional Documents */}
-              <section className="bg-white rounded-xl border border-slate-200 p-4">
-                <h3 className="text-sm font-black text-slate-700 mb-3">Additional Documents</h3>
+              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">Additional Documents</h3>
+                  </div>
+                </div>
                 {!editingId ? (
-                  <p className="text-xs text-slate-400">Save the employee first, then attach documents.</p>
+                  <p className="text-xs text-slate-400 italic">Save the employee first, then attach documents.</p>
                 ) : (
                   <>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-end mb-4 bg-slate-50 rounded-lg p-3">
-                      <Field label="Title">
-                        <input
-                          className={inputCls}
-                          value={docTitle}
-                          onChange={(e) => setDocTitle(e.target.value)}
-                          placeholder="e.g. 10th Marksheet, Experience Letter"
-                        />
-                      </Field>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-end mb-4 bg-slate-50/70 dark:bg-slate-950/60 rounded-xl p-3.5 border border-slate-200/80 dark:border-slate-800">
+                      <div className="flex-1">
+                        <Field label="Title">
+                          <input className={inputCls} value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. 10th Marksheet, Experience Letter" />
+                        </Field>
+                      </div>
                       <input ref={docInputRef} type="file" className="hidden" onChange={handleDocPick} />
                       <button
                         onClick={() => {
@@ -1032,42 +1012,34 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
                           docInputRef.current?.click();
                         }}
                         disabled={uploadingDoc}
-                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-60 whitespace-nowrap"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#be185d] hover:bg-[#9d174d] text-white text-xs font-bold disabled:opacity-60 whitespace-nowrap shadow-xs hover:shadow transition-all"
                       >
-                        {uploadingDoc ? (
-                          <Icons.RefreshCcw className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Clip className="w-4 h-4" />
-                        )}
+                        {uploadingDoc ? <Icons.RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Clip className="w-3.5 h-3.5" />}
                         Attach
                       </button>
                     </div>
 
                     {additionalDocs().length === 0 ? (
-                      <p className="text-xs text-slate-400">No additional documents uploaded.</p>
+                      <p className="text-xs text-slate-400 italic">No additional documents uploaded.</p>
                     ) : (
-                      <div className="divide-y divide-slate-100">
+                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
                         {additionalDocs().map((doc) => (
                           <div key={doc._id} className="flex items-center gap-3 py-2.5">
-                            <Icons.FileText className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                            <Icons.FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-700 truncate">{doc.label || doc.fileName}</p>
-                              <p className="text-[11px] text-slate-400">
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{doc.label || doc.fileName}</p>
+                              <p className="text-[10px] text-slate-400">
                                 {doc.fileName}
                                 {doc.size ? ` · ${fmtSize(doc.size)}` : ''} · {fmtDate(doc.uploadedAt)}
                               </p>
                             </div>
-                            <button onClick={() => openPreview(doc)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" title="Preview">
+                            <button onClick={() => openPreview(doc)} className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Preview">
                               <Icons.Search className="w-4 h-4" />
                             </button>
-                            <button onClick={() => downloadDoc(doc)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" title="Download">
+                            <button onClick={() => downloadDoc(doc)} className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Download">
                               <Icons.Download className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => removeDoc(doc)}
-                              className="p-2 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600"
-                              title="Delete"
-                            >
+                            <button onClick={() => removeDoc(doc)} className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600" title="Delete">
                               <Icons.Trash className="w-4 h-4" />
                             </button>
                           </div>
@@ -1078,21 +1050,25 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
                 )}
               </section>
 
-              {/* All attached documents summary (slots + additional) */}
               {editingId && (fullRecord?.documents || []).length > 0 && (
-                <section className="bg-white rounded-xl border border-slate-200 p-4">
-                  <h3 className="text-sm font-black text-slate-700 mb-3">All Attached Documents</h3>
-                  <div className="divide-y divide-slate-100">
+                <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-[#be185d] dark:bg-[#ec4899]" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100">All Attached Documents</h3>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
                     {(fullRecord?.documents || []).map((doc) => (
-                      <div key={doc._id} className="flex items-center gap-3 py-2">
-                        <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-500 px-2 py-0.5 rounded whitespace-nowrap">
+                      <div key={doc._id} className="flex items-center gap-3 py-2 text-xs">
+                        <span className="text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded whitespace-nowrap">
                           {doc.docType}
                         </span>
-                        <span className="text-xs text-slate-600 truncate flex-1">{doc.label || doc.fileName}</span>
-                        <button onClick={() => openPreview(doc)} className="p-1.5 rounded text-slate-500 hover:bg-slate-100" title="Preview">
+                        <span className="text-slate-600 dark:text-slate-300 truncate flex-1 font-medium">{doc.label || doc.fileName}</span>
+                        <button onClick={() => openPreview(doc)} className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Preview">
                           <Icons.Search className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => downloadDoc(doc)} className="p-1.5 rounded text-slate-500 hover:bg-slate-100" title="Download">
+                        <button onClick={() => downloadDoc(doc)} className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" title="Download">
                           <Icons.Download className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1105,16 +1081,15 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
                 <div className="flex justify-end">
                   <button
                     onClick={() => handleDelete(editingId, form.name || 'this employee')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-bold hover:bg-red-50"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40"
                   >
-                    <Icons.Trash className="w-4 h-4" /> Delete Employee
+                    <Icons.Trash className="w-3.5 h-3.5" /> Delete Employee
                   </button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* shared hidden input for slot uploads */}
           <input ref={slotInputRef} type="file" className="hidden" onChange={handleSlotFile} />
         </div>
       )}
@@ -1123,37 +1098,27 @@ const HrPortalView: React.FC<{ currentUser?: { username?: string; role?: string 
       {preview && (
         <div className="fixed inset-0 z-[10001] bg-black/70 flex flex-col" onClick={closePreview}>
           <div className="flex items-center justify-between px-4 py-3 text-white shrink-0" onClick={(e) => e.stopPropagation()}>
-            <span className="font-bold truncate pr-3">{preview.name}</span>
+            <span className="text-xs font-bold truncate pr-3">{preview.name}</span>
             <div className="flex items-center gap-2 shrink-0">
-              <a
-                href={preview.url}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 rounded-lg hover:bg-white/10"
-                title="Open in new tab"
-              >
-                <Icons.Upload className="w-5 h-5 rotate-90" />
+              <a href={preview.url} target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/10" title="Open in new tab">
+                <Icons.Upload className="w-4 h-4 rotate-90" />
               </a>
               <button onClick={closePreview} className="p-2 rounded-lg hover:bg-white/10" title="Close">
-                <Icons.X className="w-5 h-5" />
+                <Icons.X className="w-4 h-4" />
               </button>
             </div>
           </div>
           <div className="flex-1 min-h-0 p-4 pt-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             {preview.type.startsWith('image/') ? (
-              <img src={preview.url} alt={preview.name} className="max-w-full max-h-full object-contain rounded-lg bg-white" />
+              <img src={preview.url} alt={preview.name} className="max-w-full max-h-full object-contain rounded-xl bg-white" />
             ) : preview.type === 'application/pdf' ? (
-              <iframe title={preview.name} src={preview.url} className="w-full h-full rounded-lg bg-white" />
+              <iframe title={preview.name} src={preview.url} className="w-full h-full rounded-xl bg-white" />
             ) : (
-              <div className="bg-white rounded-xl p-8 text-center max-w-sm">
-                <Icons.FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                <p className="text-sm text-slate-600 mb-4">Preview isn’t available for this file type.</p>
-                <a
-                  href={preview.url}
-                  download={preview.name}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold"
-                >
-                  <Icons.Download className="w-4 h-4" /> Download
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 text-center max-w-sm shadow-xl border border-slate-200 dark:border-slate-800">
+                <Icons.FileText className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 font-medium">Preview isn’t available for this file type.</p>
+                <a href={preview.url} download={preview.name} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#be185d] hover:bg-[#9d174d] text-white text-xs font-bold transition-all shadow-xs">
+                  <Icons.Download className="w-3.5 h-3.5" /> Download
                 </a>
               </div>
             )}
