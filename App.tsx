@@ -2742,19 +2742,19 @@ const App: React.FC = () => {
                                 </td>
 
                                 <td className="px-2 py-3 text-xs font-medium text-slate-600">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-col items-start gap-1 min-w-0">
                                     {lead.assignedto ? (
-                                      <>
+                                      <div className="flex items-center gap-2 min-w-0 max-w-full">
                                         <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 uppercase shrink-0">
                                           {lead.assignedto.charAt(0)}
                                         </div>
-                                        <span className="truncate max-w-[80px]">{lead.assignedto}</span>
-                                      </>
+                                        <span className="truncate max-w-[140px]" title={lead.assignedto}>{lead.assignedto}</span>
+                                      </div>
                                     ) : (
                                       <span className="text-slate-300 italic text-xs">Unassigned</span>
                                     )}
                                     {currentUser?.role === 'admin' && lead.branch && (
-                                      <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[10px] font-bold">
+                                      <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[10px] font-bold whitespace-nowrap">
                                         {lead.branch}
                                       </span>
                                     )}

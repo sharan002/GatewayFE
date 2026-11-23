@@ -60,13 +60,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose, filters, use
     });
   };
 
-  const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    onFilterChange({
-      ...filters,
-      courses: value ? [value] : [],
-    });
-  };
 
   const staffNames = users.map(u => u.username);
 
@@ -133,22 +126,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose, filters, use
             <FilterGroup label="Assigned Staff" options={staffNames} selected={filters.assignedUsers} onToggle={(val) => toggleFilter('assignedUsers', val)} />
             <FilterGroup label="Pipeline Stage" options={PIPELINES} selected={filters.pipelines} onToggle={(val) => toggleFilter('pipelines', val)} />
 
-            {/* Course Title Dropdown */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Course Title</h3>
-              <select
-                value={filters.courses?.[0] || ''}
-                onChange={handleCourseChange}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Courses</option>
-                {COURSES.map(course => (
-                  <option key={course} value={course}>{course}</option>
-                ))}
-              </select>
-            </div>
+            <FilterGroup label="Course Title" options={COURSES} selected={filters.courses} onToggle={(val) => toggleFilter('courses', val)} />
+            <FilterGroup label="Profession" options={PROFESSIONS} selected={filters.professions} onToggle={(val) => toggleFilter('professions', val)} />
+            <FilterGroup label="Lead Source" options={SOURCES} selected={filters.sources} onToggle={(val) => toggleFilter('sources', val)} />
+            <FilterGroup label="Program Type" options={PROGRAM_TYPES} selected={filters.programTypes} onToggle={(val) => toggleFilter('programTypes', val)} />
 
-            {/* Campaign Replied Dropdown */}
+            {/* Campaign Replied Dropdown (kept at the bottom) */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Campaign Replied</h3>
               <select
@@ -162,10 +145,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose, filters, use
                 ))}
               </select>
             </div>
-
-            <FilterGroup label="Profession" options={PROFESSIONS} selected={filters.professions} onToggle={(val) => toggleFilter('professions', val)} />
-            <FilterGroup label="Lead Source" options={SOURCES} selected={filters.sources} onToggle={(val) => toggleFilter('sources', val)} />
-            <FilterGroup label="Program Type" options={PROGRAM_TYPES} selected={filters.programTypes} onToggle={(val) => toggleFilter('programTypes', val)} />
           </div>
 
           <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] border-t border-slate-100 bg-slate-50 flex gap-3">
