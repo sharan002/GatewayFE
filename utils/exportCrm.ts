@@ -1,8 +1,9 @@
 import * as XLSX from 'xlsx';
 import { apiService } from '../services/api';
 import type { FilterState } from '../App';
+import { expandSourceAliases } from '../types';
 
-const EXPORT_CHUNK = 500;
+const EXPORT_CHUNK = 200;
 
 function parseDate(val: any): string {
   if (!val) return '';
@@ -45,36 +46,70 @@ function getAllRemarks(lead: any): string {
     .join(' | ');
 }
 
+function cleanExportFilters(filters?: FilterState): Record<string, any> {
+  if (!filters) return {};
+  const out: Record<string, any> = {};
+  if (Array.isArray(filters.courses) && filters.courses.length > 0) out.courses = filters.courses;
+  if (Array.isArray(filters.programTypes) && filters.programTypes.length > 0) out.programTypes = filters.programTypes;
+  if (Array.isArray(filters.professions) && filters.professions.length > 0) out.professions = filters.professions;
+  if (Array.isArray(filters.sources) && filters.sources.length > 0) out.sources = expandSourceAliases(filters.sources);
+  if (Array.isArray(filters.statuses) && filters.statuses.length > 0) out.statuses = filters.statuses;
+  if (Array.isArray(filters.pipelines) && filters.pipelines.length > 0) out.pipelines = filters.pipelines;
+  if (Array.isArray(filters.assignedUsers) && filters.assignedUsers.length > 0) out.assignedUsers = filters.assignedUsers;
+  if (Array.isArray(filters.branches) && filters.branches.length > 0) out.branches = filters.branches;
+  if (Array.isArray(filters.campaigns) && filters.campaigns.length > 0) out.campaigns = filters.campaigns;
+  if (filters.fromDate) out.fromDate = filters.fromDate;
+  if (filters.toDate) out.toDate = filters.toDate;
+  if (filters.statusFilter) out.statusFilter = filters.statusFilter;
+  if (filters.college) out.college = filters.college;
+  if (filters.batch) out.batch = filters.batch;
+  if (filters.assignedUser) out.assignedUser = filters.assignedUser;
+  if (filters.source) out.source = filters.source;
+  return out;
+}
+
 async function fetchAllForView(
   view: string,
   mode: 'summary' | 'full',
   searchQuery: string = '',
   filters: Record<string, any> = {},
+  onProgress?: (msg: string) => void,
+  stepLabel: string = 'leads',
 ): Promise<any[]> {
   let page = 1;
   let total = Infinity;
   const all: any[] = [];
+  const cleanFilters = cleanExportFilters(filters as FilterState);
 
   while (all.length < total) {
-    const res = await apiService.queryLeads({
-      view,
-      page,
-      limit: EXPORT_CHUNK,
-      includeStats: page === 1,
-      mode,
-      searchQuery,
-      filters,
-    });
+    try {
+      const res = await apiService.queryLeads({
+        view,
+        page,
+        limit: EXPORT_CHUNK,
+        includeStats: false,
+        mode,
+        searchQuery,
+        filters: cleanFilters,
+      });
 
-    if (!res?.success) break;
-    if (page === 1) total = typeof res.total === 'number' ? res.total : Infinity;
+      if (!res?.success) break;
+      if (page === 1) total = typeof res.total === 'number' ? res.total : Infinity;
 
-    const chunk: any[] = res.leads || [];
-    all.push(...chunk);
+      const chunk: any[] = res.leads || [];
+      all.push(...chunk);
 
-    if (chunk.length < EXPORT_CHUNK) break;
-    page++;
-    if (page > 500) break; // safety guard
+      if (onProgress && total !== Infinity && total > 0) {
+        onProgress(`Fetching ${stepLabel} (${all.length}/${total})...`);
+      }
+
+      if (chunk.length < EXPORT_CHUNK || all.length >= total) break;
+      page++;
+      if (page > 200) break; // safety guard (40,000 leads)
+    } catch (err) {
+      console.error(`Failed to fetch chunk for view ${view} page ${page}:`, err);
+      break;
+    }
   }
 
   return all;
@@ -90,24 +125,25 @@ function addSheetToWorkbook(wb: XLSX.WorkBook, name: string, aoa: any[][]): void
 function buildDashboardRows(leads: any[]): any[][] {
   const headers = [
     'Name', 'Phone', 'Course', 'Program Type', 'Source', 'Status', 'Pipeline',
-    'Assigned To', 'Profession', 'Location', 'Date Created', 'Last Interacted',
+    'Assigned To', 'Branch', 'Profession', 'Location', 'Date Created', 'Last Interacted',
     'Reminder', 'Follow-ups', 'Last Remark', 'All Remarks',
   ];
   return [
     headers,
     ...leads.map(l => [
-      getField(l, 'userName', 'username') || 'Unknown',
-      getField(l, 'userNumber') || '',
+      getField(l, 'userName', 'username', 'name') || 'Unknown',
+      getField(l, 'userNumber', 'phone', 'mobile') || '',
       getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
       getField(l, 'programType', 'program_type') || '',
       getField(l, 'leadfrom', 'source') || '',
       getField(l, 'status') || '',
       getField(l, 'pipeline') || '',
-      getField(l, 'assignedto') || '',
+      getField(l, 'assignedto', 'assignedTo') || '',
+      getField(l, 'branch') || '',
       getField(l, 'profession') || '',
       getField(l, 'location', 'city') || '',
-      parseDate(l.datecreated),
-      parseDate(l.lastInteracted),
+      parseDate(l.datecreated || l.createdAt),
+      parseDate(l.lastInteracted || l.updatedAt),
       l.reminder ? parseDate(l.reminder) : '',
       l.followUpCount || 0,
       getLastRemark(l),
@@ -119,22 +155,23 @@ function buildDashboardRows(leads: any[]): any[][] {
 function buildRemindersRows(leads: any[]): any[][] {
   const headers = [
     'Name', 'Phone', 'Course', 'Source', 'Status', 'Pipeline',
-    'Assigned To', 'Reminder Date', 'Follow-ups', 'Last Remark', 'Date Created',
+    'Assigned To', 'Branch', 'Reminder Date', 'Follow-ups', 'Last Remark', 'Date Created',
   ];
   return [
     headers,
     ...leads.map(l => [
-      getField(l, 'userName', 'username') || 'Unknown',
-      getField(l, 'userNumber') || '',
+      getField(l, 'userName', 'username', 'name') || 'Unknown',
+      getField(l, 'userNumber', 'phone', 'mobile') || '',
       getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
       getField(l, 'leadfrom', 'source') || '',
       getField(l, 'status') || '',
       getField(l, 'pipeline') || '',
-      getField(l, 'assignedto') || '',
+      getField(l, 'assignedto', 'assignedTo') || '',
+      getField(l, 'branch') || '',
       l.reminder ? parseDate(l.reminder) : '',
       l.followUpCount || 0,
       getLastRemark(l),
-      parseDate(l.datecreated),
+      parseDate(l.datecreated || l.createdAt),
     ]),
   ];
 }
@@ -142,7 +179,7 @@ function buildRemindersRows(leads: any[]): any[][] {
 function buildEnrolledRows(leads: any[]): any[][] {
   const headers = [
     'Name', 'Phone', 'Course', 'Program Type', 'Batch ID', 'Trainer', 'Batch Date',
-    'Billed Amount', 'Total Paid', 'Total Pending', 'Assigned To', 'Date Created', 'Last Remark',
+    'Billed Amount', 'Total Paid', 'Total Pending', 'Assigned To', 'Branch', 'Date Created', 'Last Remark',
   ];
   return [
     headers,
@@ -152,8 +189,8 @@ function buildEnrolledRows(leads: any[]): any[][] {
       const paid = installs.filter((i: any) => i.status === 'Paid').reduce((s: number, i: any) => s + (i.amount || 0), 0);
       const pending = installs.filter((i: any) => i.status === 'Pending').reduce((s: number, i: any) => s + (i.amount || 0), 0);
       return [
-        getField(l, 'userName', 'username') || 'Unknown',
-        getField(l, 'userNumber') || '',
+        getField(l, 'userName', 'username', 'name') || 'Unknown',
+        getField(l, 'userNumber', 'phone', 'mobile') || '',
         getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
         getField(l, 'programType', 'program_type') || '',
         getField(l, 'batchId') || '',
@@ -162,8 +199,9 @@ function buildEnrolledRows(leads: any[]): any[][] {
         fees?.billedAmount || 0,
         paid,
         pending,
-        getField(l, 'assignedto') || '',
-        parseDate(l.datecreated),
+        getField(l, 'assignedto', 'assignedTo') || '',
+        getField(l, 'branch') || '',
+        parseDate(l.datecreated || l.createdAt),
         getLastRemark(l),
       ];
     }),
@@ -173,7 +211,7 @@ function buildEnrolledRows(leads: any[]): any[][] {
 function buildInternshipRows(leads: any[]): any[][] {
   const headers = [
     'Name', 'Phone', 'Course', 'College', 'Degree', 'Department',
-    'Internship', 'Start Date', 'End Date', 'Batch Code', 'Assigned To', 'Date Created',
+    'Internship', 'Start Date', 'End Date', 'Batch Code', 'Assigned To', 'Branch', 'Date Created',
   ];
   const rows: any[][] = [];
   for (const l of leads) {
@@ -181,8 +219,8 @@ function buildInternshipRows(leads: any[]): any[][] {
     if (details.length > 0) {
       for (const d of details) {
         rows.push([
-          getField(l, 'userName', 'username') || 'Unknown',
-          getField(l, 'userNumber') || '',
+          getField(l, 'userName', 'username', 'name') || 'Unknown',
+          getField(l, 'userNumber', 'phone', 'mobile') || '',
           getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
           d.college || '',
           d.degree || d.other_degree || '',
@@ -191,18 +229,20 @@ function buildInternshipRows(leads: any[]): any[][] {
           d.start_date ? parseDate(d.start_date) : '',
           d.end_date ? parseDate(d.end_date) : '',
           d.batch_code || '',
-          getField(l, 'assignedto') || '',
-          parseDate(l.datecreated),
+          getField(l, 'assignedto', 'assignedTo') || '',
+          getField(l, 'branch') || '',
+          parseDate(l.datecreated || l.createdAt),
         ]);
       }
     } else {
       rows.push([
-        getField(l, 'userName', 'username') || 'Unknown',
-        getField(l, 'userNumber') || '',
+        getField(l, 'userName', 'username', 'name') || 'Unknown',
+        getField(l, 'userNumber', 'phone', 'mobile') || '',
         getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
         '', '', '', '', '', '', '',
-        getField(l, 'assignedto') || '',
-        parseDate(l.datecreated),
+        getField(l, 'assignedto', 'assignedTo') || '',
+        getField(l, 'branch') || '',
+        parseDate(l.datecreated || l.createdAt),
       ]);
     }
   }
@@ -210,12 +250,11 @@ function buildInternshipRows(leads: any[]): any[][] {
 }
 
 function buildFeesRows(leads: any[]): any[][] {
-  // Only enrolled leads (same filter as FeesView)
   const enrolled = leads.filter(l => (l.pipeline || '').toLowerCase() === 'enrolled');
+  const targetLeads = enrolled.length > 0 ? enrolled : leads;
 
-  // Determine max installments across all enrolled leads
   let maxInst = 0;
-  for (const l of enrolled) {
+  for (const l of targetLeads) {
     const fees = l.fees || l.feeStructure;
     const n = Array.isArray(fees?.installments) ? fees.installments.length : 0;
     if (n > maxInst) maxInst = n;
@@ -229,25 +268,26 @@ function buildFeesRows(leads: any[]): any[][] {
   const headers = [
     'Name', 'Phone', 'Course', 'Program Type',
     'Billed Amount', 'Total Paid', 'Total Pending',
-    'Assigned To', 'Last Remark',
+    'Assigned To', 'Branch', 'Last Remark',
     ...instHeaders,
   ];
 
-  const rows = enrolled.map(l => {
+  const rows = targetLeads.map(l => {
     const fees = l.fees || l.feeStructure;
     const installs: any[] = Array.isArray(fees?.installments) ? fees.installments : [];
     const paid = installs.filter((i: any) => i.status === 'Paid').reduce((s: number, i: any) => s + (i.amount || 0), 0);
     const pending = installs.filter((i: any) => i.status === 'Pending').reduce((s: number, i: any) => s + (i.amount || 0), 0);
 
     const base = [
-      getField(l, 'userName', 'username') || 'Unknown',
-      getField(l, 'userNumber') || '',
+      getField(l, 'userName', 'username', 'name') || 'Unknown',
+      getField(l, 'userNumber', 'phone', 'mobile') || '',
       getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
       getField(l, 'programType', 'program_type') || '',
       fees?.billedAmount || 0,
       paid,
       pending,
-      getField(l, 'assignedto') || '',
+      getField(l, 'assignedto', 'assignedTo') || '',
+      getField(l, 'branch') || '',
       getLastRemark(l),
     ];
 
@@ -275,21 +315,22 @@ function buildFeesRows(leads: any[]): any[][] {
 function buildNotInterestedRows(leads: any[]): any[][] {
   const headers = [
     'Name', 'Phone', 'Course', 'Source', 'Status', 'Pipeline',
-    'Assigned To', 'Last Remark', 'Date Created', 'Last Interacted',
+    'Assigned To', 'Branch', 'Last Remark', 'Date Created', 'Last Interacted',
   ];
   return [
     headers,
     ...leads.map(l => [
-      getField(l, 'userName', 'username') || 'Unknown',
-      getField(l, 'userNumber') || '',
+      getField(l, 'userName', 'username', 'name') || 'Unknown',
+      getField(l, 'userNumber', 'phone', 'mobile') || '',
       getField(l, 'course', 'courseofintrest', 'courseTitle') || '',
       getField(l, 'leadfrom', 'source') || '',
       getField(l, 'status') || '',
       getField(l, 'pipeline') || '',
-      getField(l, 'assignedto') || '',
+      getField(l, 'assignedto', 'assignedTo') || '',
+      getField(l, 'branch') || '',
       getLastRemark(l),
-      parseDate(l.datecreated),
-      parseDate(l.lastInteracted),
+      parseDate(l.datecreated || l.createdAt),
+      parseDate(l.lastInteracted || l.updatedAt),
     ]),
   ];
 }
@@ -305,32 +346,30 @@ type ExportStep = {
 };
 
 const EXPORT_STEPS: Record<string, ExportStep> = {
+  leads:                 { view: 'dashboard',           label: 'Leads',               sheetName: 'Leads',               mode: 'summary', build: buildDashboardRows     },
   dashboard:             { view: 'dashboard',           label: 'Dashboard',           sheetName: 'Dashboard',           mode: 'summary', build: buildDashboardRows     },
   transferred:           { view: 'transferred',         label: 'Transferred',         sheetName: 'Transferred',         mode: 'summary', build: buildDashboardRows     },
   reminders:             { view: 'reminders',           label: 'Reminders',           sheetName: 'Reminders',           mode: 'summary', build: buildRemindersRows     },
   enrolled:              { view: 'course-enrolled',     label: 'Course Enrolled',     sheetName: 'Course Enrolled',     mode: 'full',    build: buildEnrolledRows      },
+  'course-enrolled':     { view: 'course-enrolled',     label: 'Course Enrolled',     sheetName: 'Course Enrolled',     mode: 'full',    build: buildEnrolledRows      },
   'internship-enrolled': { view: 'internship-enrolled', label: 'Internship Enrolled', sheetName: 'Internship Enrolled', mode: 'full',    build: buildInternshipRows    },
   fees:                  { view: 'fees',                label: 'Fees',                sheetName: 'Fees',                mode: 'full',    build: buildFeesRows          },
   'not-interested':      { view: 'not-interested',      label: 'Not Interested',      sheetName: 'Not Interested',      mode: 'summary', build: buildNotInterestedRows },
 };
 
-// Tabs whose data App.tsx's global FilterPanel actually narrows — Reminders,
-// Course Enrolled, Internship Enrolled and Fees manage their own local filtering
-// and only share the top search box with the rest of the app.
-const FILTERABLE_VIEWS = new Set(['dashboard', 'transferred', 'not-interested']);
-
-// Reminders intentionally ignores the search box too (mirrors fetchLeadsForCurrentView in App.tsx).
-const SEARCHABLE_VIEWS = new Set(['dashboard', 'transferred', 'not-interested', 'enrolled', 'internship-enrolled', 'fees']);
+const FILTERABLE_VIEWS = new Set(['dashboard', 'leads', 'transferred', 'not-interested']);
+const SEARCHABLE_VIEWS = new Set(['dashboard', 'leads', 'transferred', 'not-interested', 'enrolled', 'course-enrolled', 'internship-enrolled', 'fees']);
 
 function isFilterStateActive(filters: FilterState): boolean {
+  if (!filters) return false;
   const {
-    courses, programTypes, professions, sources, statuses, pipelines,
-    assignedUsers, campaigns, fromDate, toDate, statusFilter,
+    courses = [], programTypes = [], professions = [], sources = [], statuses = [], pipelines = [],
+    assignedUsers = [], branches = [], campaigns = [], fromDate = '', toDate = '', statusFilter = null,
   } = filters;
   const arrayFiltersActive =
     courses.length > 0 || programTypes.length > 0 || professions.length > 0 ||
     sources.length > 0 || statuses.length > 0 || pipelines.length > 0 ||
-    assignedUsers.length > 0 || campaigns.length > 0;
+    assignedUsers.length > 0 || branches.length > 0 || campaigns.length > 0;
   return arrayFiltersActive || fromDate !== '' || toDate !== '' || statusFilter !== null;
 }
 
@@ -339,11 +378,20 @@ async function exportSingleView(
   searchQuery: string,
   filters: Record<string, any>,
   onProgress?: (msg: string) => void,
+  currentLeads?: any[],
 ): Promise<void> {
   onProgress?.(`Fetching ${step.label}...`);
-  const leads = await fetchAllForView(step.view, step.mode, searchQuery, filters);
+  let leads = await fetchAllForView(step.view, step.mode, searchQuery, filters, onProgress, step.label);
+
+  // Fallback to in-memory leads if API returned 0 leads but UI has leads loaded
+  if (leads.length === 0 && Array.isArray(currentLeads) && currentLeads.length > 0) {
+    console.warn(`[Export CRM] API returned 0 leads for ${step.view}, falling back to ${currentLeads.length} loaded leads in memory.`);
+    leads = currentLeads;
+  }
+
+  const rows = step.build(leads);
   const wb = XLSX.utils.book_new();
-  addSheetToWorkbook(wb, step.sheetName, step.build(leads));
+  addSheetToWorkbook(wb, step.sheetName, rows);
   const safeName = step.sheetName.replace(/[^a-z0-9]+/gi, '_');
   XLSX.writeFile(wb, `CRM_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
@@ -354,7 +402,7 @@ export async function exportAllCrmData(onProgress?: (msg: string) => void): Prom
   const wb = XLSX.utils.book_new();
 
   const steps = [
-    EXPORT_STEPS.dashboard,
+    EXPORT_STEPS.leads,
     EXPORT_STEPS.reminders,
     EXPORT_STEPS.enrolled,
     EXPORT_STEPS['internship-enrolled'],
@@ -364,7 +412,7 @@ export async function exportAllCrmData(onProgress?: (msg: string) => void): Prom
 
   for (const step of steps) {
     onProgress?.(`Fetching ${step.label}...`);
-    const leads = await fetchAllForView(step.view, step.mode);
+    const leads = await fetchAllForView(step.view, step.mode, '', {}, onProgress, step.label);
     const aoa = step.build(leads);
     addSheetToWorkbook(wb, step.sheetName, aoa);
   }
@@ -373,28 +421,34 @@ export async function exportAllCrmData(onProgress?: (msg: string) => void): Prom
   XLSX.writeFile(wb, filename);
 }
 
-// Sidebar "Export CRM" button: a specific tab exports just that tab, the Dashboard
-// with an active filter/search exports just the filtered subset, otherwise exports everything.
+// Sidebar / Menu "Export CRM" button:
+// Exports the current view with any active search and filters.
+// If the API returns 0 leads but the UI currently has leads loaded in memory,
+// currentLeads is used as a fallback so that the user never gets an empty file.
 export async function exportCrmData(
   currentView: string,
   filters: FilterState,
   searchQuery: string,
   onProgress?: (msg: string) => void,
+  currentLeads?: any[],
 ): Promise<void> {
   const step = EXPORT_STEPS[currentView];
   const trimmedSearch = (searchQuery || '').trim();
 
-  if (step && currentView !== 'dashboard') {
+  // If we are on any recognizable view, export that specific view
+  if (step) {
     const effectiveSearch = SEARCHABLE_VIEWS.has(currentView) ? trimmedSearch : '';
     const effectiveFilters = FILTERABLE_VIEWS.has(currentView) ? filters : {};
-    await exportSingleView(step, effectiveSearch, effectiveFilters, onProgress);
+    await exportSingleView(step, effectiveSearch, effectiveFilters, onProgress, currentLeads);
     return;
   }
 
+  // If on an unknown view but search or filters are active, export filtered Leads
   if (trimmedSearch.length > 0 || isFilterStateActive(filters)) {
-    await exportSingleView(EXPORT_STEPS.dashboard, trimmedSearch, filters, onProgress);
+    await exportSingleView(EXPORT_STEPS.leads, trimmedSearch, filters, onProgress, currentLeads);
     return;
   }
 
+  // Fallback to full export across views
   await exportAllCrmData(onProgress);
 }

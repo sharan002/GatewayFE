@@ -992,7 +992,7 @@ const App: React.FC = () => {
     setIsExporting(true);
     setExportProgress('Starting...');
     try {
-      await exportCrmData(currentView, filters, searchQuery, (msg) => setExportProgress(msg));
+      await exportCrmData(currentView, filters, searchQuery, (msg) => setExportProgress(msg), leads);
     } catch (err) {
       console.error('CRM export failed:', err);
       alert('Export failed. Please try again.');
