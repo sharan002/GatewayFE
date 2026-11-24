@@ -6,6 +6,7 @@ import { Icons } from './Icons';
 
 interface Props {
   currentUser: User | null;
+  embedded?: boolean;
 }
 
 interface ParsedContact {
@@ -45,7 +46,7 @@ function formatDate(v: string | { $date: string } | undefined | null) {
   return new Date(raw).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-const BulkMsgView: React.FC<Props> = ({ currentUser }) => {
+const BulkMsgView: React.FC<Props> = ({ currentUser, embedded = false }) => {
   const [contacts, setContacts] = useState<ParsedContact[]>([]);
   const [fileName, setFileName] = useState('');
   const [campaignName, setCampaignName] = useState('');
@@ -114,12 +115,13 @@ const BulkMsgView: React.FC<Props> = ({ currentUser }) => {
   };
 
   return (
-    <div className="flex-1 min-h-0 min-w-0 overflow-y-auto p-3 sm:p-6 text-slate-700 flex flex-col">
-      <div className="max-w-7xl w-full mx-auto space-y-5">
+    <div className={embedded ? 'w-full text-slate-700' : 'flex-1 min-h-0 min-w-0 overflow-y-auto p-3 sm:p-6 text-slate-700 flex flex-col'}>
+      <div className={embedded ? 'w-full space-y-5' : 'max-w-7xl w-full mx-auto space-y-5'}>
 
       
 
         {/* ── Bulk WhatsApp Title Banner ── */}
+        {!embedded && (
         <div className="flex items-center gap-3 px-1 py-1">
           <div className="text-[#25D366] shrink-0">
             <Icons.WhatsApp className="w-7 h-7" />
@@ -131,6 +133,7 @@ const BulkMsgView: React.FC<Props> = ({ currentUser }) => {
             </p>
           </div>
         </div>
+        )}
 
         {/* ── Main Form Container (Redesigned according to reference image) ── */}
         <div className="bg-white rounded-3xl border border-white shadow-sm p-5 sm:p-8 space-y-6">

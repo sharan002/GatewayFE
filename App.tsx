@@ -20,7 +20,9 @@ import GroupChatView from './components/GroupChatView';
 import ReleaseNotesView, { hasActiveReleaseNotes } from './components/ReleaseNotesView';
 import WeeklyAIReportView from './components/WeeklyAIReportView';
 import GoogleAnalyticsView from './components/GoogleAnalyticsView';
-import BulkMsgView from './components/BulkMsgView';     
+import BulkMsgView from './components/BulkMsgView';
+import WhatsAppManagerView from './components/whatsapp/WhatsAppManagerView';
+import CtwaAdsView from './components/CtwaAdsView';     
 import BatchTimetableView from './components/BatchTimetableView';
 import HrPortalView from './components/HrPortalView';
 import JobEnquiryView from './components/JobEnquiryView';
@@ -29,7 +31,7 @@ import SalesTrainingView from './components/SalesTrainingView';
 import { LeadGroupChips, CreateGroupModal, LeadGroupPopup, GroupsPanel } from './components/LeadGroups';
 import { ReferralGroupsButton, ReferralGroupsPanel, ReferralGroupPopup, ReferralCodeChip } from './components/ReferralGroups';
 
-type View = 'dashboard' | 'leads' | 'transferred' | 'reminders' | 'enrolled' | 'internship-enrolled' | 'fees' | 'not-interested' | 'daily-report' | 'weekly-ai-report' | 'notes' | 'user-management' | 'group-chat' | 'release-notes' | 'google-analytics' | 'bulk-msg' | 'batch-timetable' | 'hr-portal' | 'job-enquiry' | 'review-meeting' | 'sales-training';
+type View = 'dashboard' | 'leads' | 'transferred' | 'reminders' | 'enrolled' | 'internship-enrolled' | 'fees' | 'not-interested' | 'daily-report' | 'weekly-ai-report' | 'notes' | 'user-management' | 'group-chat' | 'release-notes' | 'google-analytics' | 'bulk-msg' | 'whatsapp-manager' | 'ctwa-ads' | 'batch-timetable' | 'hr-portal' | 'job-enquiry' | 'review-meeting' | 'sales-training';
 
 export interface FilterState {
   courses: string[];
@@ -162,7 +164,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem('crm_view') as View;
-    const valid: View[] = ['dashboard', 'transferred', 'reminders', 'enrolled', 'internship-enrolled', 'fees', 'not-interested', 'daily-report', 'notes', 'user-management', 'group-chat', 'release-notes', 'google-analytics', 'bulk-msg', 'batch-timetable', 'hr-portal', 'job-enquiry', 'review-meeting', 'sales-training'];
+    const valid: View[] = ['dashboard', 'transferred', 'reminders', 'enrolled', 'internship-enrolled', 'fees', 'not-interested', 'daily-report', 'notes', 'user-management', 'group-chat', 'release-notes', 'google-analytics', 'bulk-msg', 'whatsapp-manager', 'ctwa-ads', 'batch-timetable', 'hr-portal', 'job-enquiry', 'review-meeting', 'sales-training'];
     return valid.includes(saved) ? saved : 'dashboard';
   });
   const [feesInitialLeadId, setFeesInitialLeadId] = useState<string | null>(null);
@@ -302,6 +304,8 @@ const App: React.FC = () => {
     'release-notes': "What's New",
     'google-analytics': 'Google Analytics',
     'bulk-msg': 'Bulk WhatsApp',
+    'whatsapp-manager': 'WhatsApp Manager',
+    'ctwa-ads': 'Meta Ads Manager',
     'batch-timetable': 'Batch Timetable',
     'hr-portal': 'HR Portal',
     'job-enquiry': 'Job Enquiry',
@@ -1547,6 +1551,38 @@ const App: React.FC = () => {
             </button>
           )}
 
+          {/* WhatsApp Manager */}
+          {currentUser?.role === 'admin' && (
+            <button 
+              onClick={() => { setCurrentView('whatsapp-manager'); setIsMobileMenuOpen(false); }} 
+              title={isSidebarCollapsed ? 'WhatsApp Manager' : undefined}
+              className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-xl transition-all font-medium text-[13.5px] ${
+                currentView === 'whatsapp-manager' 
+                  ? 'bg-[#ecfdf5] dark:bg-emerald-950/40 text-[#047857] dark:text-emerald-300 font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+              } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+            >
+              <Icons.WhatsApp className="w-5 h-5 flex-shrink-0 text-[#25D366]" />
+              {!isSidebarCollapsed && <span className="truncate">WhatsApp Manager</span>}
+            </button>
+          )}
+
+          {/* Meta Ads Manager */}
+          {currentUser?.role === 'admin' && (
+            <button 
+              onClick={() => { setCurrentView('ctwa-ads'); setIsMobileMenuOpen(false); }} 
+              title={isSidebarCollapsed ? 'Meta Ads Manager' : undefined}
+              className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-xl transition-all font-medium text-[13.5px] ${
+                currentView === 'ctwa-ads' 
+                  ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+              } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+            >
+              <Icons.Target className="w-5 h-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+              {!isSidebarCollapsed && <span className="truncate">Meta Ads Manager</span>}
+            </button>
+          )}
+
           {/* What's New */}
           {!isHr && (
             <button 
@@ -1618,7 +1654,7 @@ const App: React.FC = () => {
               </p>
             </div>
 
-            {!isDailyReportView && currentView !== 'notes' && currentView !== 'user-management' && currentView !== 'hr-portal' && currentView !== 'job-enquiry' && currentView !== 'review-meeting' && currentView !== 'sales-training' && currentView !== 'group-chat' && currentView !== 'bulk-msg' && (
+            {!isDailyReportView && currentView !== 'notes' && currentView !== 'user-management' && currentView !== 'hr-portal' && currentView !== 'job-enquiry' && currentView !== 'review-meeting' && currentView !== 'sales-training' && currentView !== 'group-chat' && currentView !== 'bulk-msg' && currentView !== 'whatsapp-manager' && currentView !== 'ctwa-ads' && (
               <div className="relative max-w-xs w-full hidden md:block ml-2">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 <input 
@@ -1751,7 +1787,7 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {!isDailyReportView && currentView !== 'user-management' && currentView !== 'hr-portal' && currentView !== 'job-enquiry' && currentView !== 'review-meeting' && currentView !== 'sales-training' && currentView !== 'group-chat' && currentView !== 'bulk-msg' && (
+            {!isDailyReportView && currentView !== 'user-management' && currentView !== 'hr-portal' && currentView !== 'job-enquiry' && currentView !== 'review-meeting' && currentView !== 'sales-training' && currentView !== 'group-chat' && currentView !== 'bulk-msg' && currentView !== 'whatsapp-manager' && currentView !== 'ctwa-ads' && (
               <button onClick={() => setIsMobileActionsOpen(!isMobileActionsOpen)} className="md:hidden p-2.5 hover:bg-slate-100 rounded-2xl relative flex-shrink-0 bg-white border border-slate-200 shadow-sm">
                 <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                 {(hasActiveFilters || selectedLeadIds.size > 0 || isMessagingMode || isGroupMode || groupPickIds.size > 0) && (
@@ -2870,6 +2906,10 @@ const App: React.FC = () => {
           <GroupChatView currentUser={currentUser} />
         ) : currentView === 'bulk-msg' ? (
           <BulkMsgView currentUser={currentUser} />
+        ) : currentView === 'whatsapp-manager' && currentUser?.role === 'admin' ? (
+          <WhatsAppManagerView currentUser={currentUser} initialTab="templates" />
+        ) : currentView === 'ctwa-ads' && currentUser?.role === 'admin' ? (
+          <CtwaAdsView />
         ) : currentView === 'release-notes' ? (
           <ReleaseNotesView />
         ) : currentView === 'fees' ? (

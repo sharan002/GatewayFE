@@ -1,5 +1,5 @@
 
-import { Lead, DashboardResponse, CombinedCertificateResult, LeadsQueryResponse, DashboardMetaResponse, FeesStatsResponse, TodayUserActivityResponse, MonthlyReportResponse, PipelineDistributionResponse, UserTargetsResponse, GA4AcquisitionResponse, GA4SessionSourceResponse, GA4OrganicLandingPagesResponse, GA4EngagementOverviewResponse, TempLead, BatchTimetableEntry, CompletedBatchEntry, LeadGroup, LeadGroupsResponse, LeadGroupResponse, LeadGroupMembersResponse, LeadGroupSearchResponse, ReferralGroup, ReferralGroupsResponse, ReferralGroupMembersResponse } from '../types';
+import { Lead, DashboardResponse, CombinedCertificateResult, LeadsQueryResponse, DashboardMetaResponse, FeesStatsResponse, TodayUserActivityResponse, MonthlyReportResponse, PipelineDistributionResponse, UserTargetsResponse, GA4AcquisitionResponse, GA4SessionSourceResponse, GA4OrganicLandingPagesResponse, GA4EngagementOverviewResponse, TempLead, BatchTimetableEntry, CompletedBatchEntry, LeadGroup, LeadGroupsResponse, LeadGroupResponse, LeadGroupMembersResponse, LeadGroupSearchResponse, ReferralGroup, ReferralGroupsResponse, ReferralGroupMembersResponse, WhatsAppBillingSummaryResponse, WhatsAppTemplateUsageResponse, WaTemplate, WaTemplatesResponse, WaTemplateSyncResponse, WaAccountInfo, WaBusinessProfile, WaTemplateAnalyticsResponse } from '../types';
 
 // https://ask4people.in/crmapi
 
@@ -1163,6 +1163,244 @@ export const apiService = {
     const response = await fetch(`${BASE_URL}/training/trigger`, { method: 'POST', headers: getHeaders() });
     const data = await response.json();
     if (!response.ok || !data.success) throw new Error(data.message || 'Failed to trigger sales training');
+    return data;
+  },
+
+  // Click-to-WhatsApp Ads manager (admin only) — thin wrapper over the /ctwa/* routes.
+  async ctwa<T = any>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: any): Promise<T> {
+    const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+    const headers: Record<string, string> = { ...getHeaders() };
+    if (isForm) delete headers['Content-Type'];
+    const response = await fetch(`${BASE_URL}/ctwa${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.success === false) throw new Error(data?.message || 'CTWA request failed');
+    return data;
+  },
+
+  async fetchWhatsAppBillingSummary(startDate?: string, endDate?: string, phoneNumberId?: string): Promise<WhatsAppBillingSummaryResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    if (phoneNumberId && phoneNumberId !== 'all') params.set('phoneNumberId', phoneNumberId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${BASE_URL}/whatsapp/billing/summary${qs}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.message || 'Failed to fetch WhatsApp billing summary');
+    return data;
+  },
+
+  async fetchWhatsAppTemplateUsage(startDate?: string, endDate?: string, phoneNumberId?: string): Promise<WhatsAppTemplateUsageResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    if (phoneNumberId && phoneNumberId !== 'all') params.set('phoneNumberId', phoneNumberId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${BASE_URL}/whatsapp/billing/template-usage${qs}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.message || 'Failed to fetch WhatsApp template usage');
+    return data;
+  },
+
+  // ── WhatsApp Manager (templates, account, profile, analytics) ──────────────
+  async fetchWhatsAppTemplates(params?: {
+    search?: string;
+    status?: string;
+    category?: string;
+    language?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<WaTemplatesResponse> {
+    const q = new URLSearchParams();
+    if (params?.search) q.set('search', params.search);
+    if (params?.status) q.set('status', params.status);
+    if (params?.category) q.set('category', params.category);
+    if (params?.language) q.set('language', params.language);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.sortBy) q.set('sortBy', params.sortBy);
+    if (params?.sortOrder) q.set('sortOrder', params.sortOrder);
+
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const res = await fetch(`${BASE_URL}/whatsapp/templates${qs}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to fetch WhatsApp templates');
+    return data;
+  },
+
+  async syncWhatsAppTemplates(): Promise<WaTemplateSyncResponse> {
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.metaError?.error_user_msg || data?.metaError?.message || data?.message || 'Failed to sync templates from Meta';
+      throw new Error(msg);
+    }
+    return data;
+  },
+
+  async createWhatsAppTemplate(payload: {
+    name: string;
+    language: string;
+    category: string;
+    components: any[];
+    parameterFormat?: string;
+  }): Promise<{ success: boolean; message: string; template: any }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/templates`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err: any = new Error(data?.message || 'Failed to submit template to Meta');
+      err.errors = data?.errors;
+      err.metaError = data?.metaError;
+      throw err;
+    }
+    return data;
+  },
+
+  async uploadWhatsAppMedia(file: File): Promise<{ success: boolean; handle: string; fileName: string; size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('crm_token');
+
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/media/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to upload media to Meta');
+    return data;
+  },
+
+  async updateWhatsAppTemplate(id: string, payload: {
+    category?: string;
+    components: any[];
+  }): Promise<{ success: boolean; message: string; template: any }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err: any = new Error(data?.message || 'Failed to update template');
+      err.errors = data?.errors;
+      throw err;
+    }
+    return data;
+  },
+
+  async deleteWhatsAppTemplate(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to delete template');
+    return data;
+  },
+
+  async duplicateWhatsAppTemplate(id: string, name?: string): Promise<{ success: boolean; draft: any }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/${id}/duplicate`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to duplicate template');
+    return data;
+  },
+
+  async sendTestWhatsAppTemplate(
+    id: string,
+    to: string,
+    parameters?: { body?: string[]; header?: string }
+  ): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/${id}/test`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ to, parameters }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to send test message');
+    return data;
+  },
+
+  async fetchWhatsAppAccount(): Promise<{ success: boolean; account: WaAccountInfo }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/account`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to fetch WhatsApp account info');
+    return data;
+  },
+
+  async fetchWhatsAppBusinessProfile(phoneNumberId?: string): Promise<{ success: boolean; phoneNumberId: string; profile: WaBusinessProfile }> {
+    const qs = phoneNumberId ? `?phoneNumberId=${phoneNumberId}` : '';
+    const res = await fetch(`${BASE_URL}/whatsapp/profile${qs}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to fetch WhatsApp business profile');
+    return data;
+  },
+
+  async updateWhatsAppBusinessProfile(payload: {
+    about?: string;
+    address?: string;
+    description?: string;
+    email?: string;
+    websites?: string[];
+    vertical?: string;
+    phoneNumberId?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`${BASE_URL}/whatsapp/profile`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to update WhatsApp business profile');
+    return data;
+  },
+
+  async fetchWhatsAppTemplateAnalytics(
+    templateId: string,
+    params?: { startDate?: string; endDate?: string }
+  ): Promise<WaTemplateAnalyticsResponse> {
+    const q = new URLSearchParams();
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+
+    const res = await fetch(`${BASE_URL}/whatsapp/templates/${templateId}/analytics${qs}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || 'Failed to fetch template analytics');
     return data;
   },
 };

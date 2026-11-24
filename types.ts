@@ -612,7 +612,8 @@ export interface GA4EngagementOverviewResponse {
 export interface WhatsAppBillingSummaryResponse {
   success: boolean;
   dateRange: { startDate: string; endDate: string };
-  account: { name: string; currency: string };
+  account: { name: string; currency: string; selectedPhone?: string | null };
+  phoneNumbers?: { id: string; display_phone_number: string; verified_name?: string }[];
   totals: { cost: number; volume: number; billableVolume: number; avgCostPerBillable: number };
   byCategory: { category: string; pricingType: string; volume: number; cost: number }[];
   daily: { date: string; volume: number; cost: number }[];
@@ -635,6 +636,147 @@ export interface WhatsAppTemplateUsageResponse {
   dateRange: { startDate: string; endDate: string };
   analyticsError: string;
   rows: WhatsAppTemplateUsageRow[];
+}
+
+// ─── WhatsApp Manager & Template Types ────────────────────────────────────────
+
+export interface WaTemplateButton {
+  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE' | 'FLOW' | 'CATALOG';
+  text: string;
+  url?: string;
+  phone_number?: string;
+  example?: string[];
+}
+
+export interface WaTemplateComponent {
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  format?: 'TEXT' | 'IMAGE' | 'DOCUMENT' | 'VIDEO' | 'LOCATION';
+  text?: string;
+  example?: any;
+  buttons?: WaTemplateButton[];
+}
+
+export interface WaTemplateStatusHistory {
+  status: string;
+  reason?: string | null;
+  at: string;
+}
+
+export interface WaTemplate {
+  _id: string;
+  tenantId: string;
+  metaId?: string;
+  name: string;
+  language: string;
+  category: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+  parameterFormat?: 'POSITIONAL' | 'NAMED';
+  components: WaTemplateComponent[];
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAUSED' | 'DISABLED' | 'IN_APPEAL' | 'DELETED';
+  qualityScore?: string;
+  rejectedReason?: string | null;
+  source: 'crm' | 'meta';
+  createdBy?: string;
+  statusHistory?: WaTemplateStatusHistory[];
+  lastSyncedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WaTemplatesResponse {
+  success: boolean;
+  templates: WaTemplate[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  stats: {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    paused: number;
+    disabled: number;
+  };
+  message?: string;
+}
+
+export interface WaTemplateSyncResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    success: boolean;
+    totalMeta: number;
+    added: number;
+    updated: number;
+    lastSyncedAt: string;
+  };
+}
+
+export interface WaPhoneNumber {
+  id: string;
+  display_phone_number: string;
+  verified_name: string;
+  quality_rating: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+  messaging_limit_tier: string;
+  status: string;
+  name_status?: string;
+  code_verification_status?: string;
+  throughput?: {
+    level: string;
+  };
+}
+
+export interface WaAccountInfo {
+  id: string;
+  name: string;
+  currency?: string;
+  timezoneId?: string;
+  namespace?: string | null;
+  phoneNumbers: WaPhoneNumber[];
+}
+
+export interface WaBusinessProfile {
+  about?: string;
+  address?: string;
+  description?: string;
+  email?: string;
+  profile_picture_url?: string;
+  websites?: string[];
+  vertical?: string;
+}
+
+export interface WaTemplateDailyPoint {
+  date: string;
+  timestamp: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  cost: number;
+  replied: number;
+  undelivered: number;
+}
+
+export interface WaTemplateAnalytics {
+  amountSpent: number;
+  costPerDelivered: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  replied: number;
+  undelivered: number;
+  currency: string;
+  dailyPoints: WaTemplateDailyPoint[];
+}
+
+export interface WaTemplateAnalyticsResponse {
+  success: boolean;
+  template: WaTemplate;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  };
+  analytics: WaTemplateAnalytics;
+  analyticsError?: string;
 }
 
 export function normalizeLeadSource(source: string | null | undefined): string {
