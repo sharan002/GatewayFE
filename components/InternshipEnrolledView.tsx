@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Lead, User, InternCertificateDetail, CertificateResult, Installment } from '../types';
 import { apiService } from '../services/api';
 import { FilterState } from '../App';
+import { SOURCES } from './FilterPanel';
 import MessageModal from './MessageModal';
 
 interface InternshipEnrolledViewProps {
@@ -204,7 +205,10 @@ const InternshipEnrolledView: React.FC<InternshipEnrolledViewProps> = ({
     fromDate: '',
     toDate: '',
     statusFilter: null,
-    college: ''
+    college: '',
+    batch: '',
+    assignedUser: '',
+    source: ''
   };
 
   const [filters, setFilters] = useState<FilterState>(initialFilters);
@@ -1021,6 +1025,14 @@ const handleDeleteLeadById = (id: string) => {
                   <select value={filters.batch || ''} onChange={e => setFilters({ ...filters, batch: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg text-sm">
                     <option value="">All Batches</option>
                     {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lead Source</label>
+                  <select value={filters.source || ''} onChange={e => setFilters({ ...filters, source: e.target.value })} className="w-full mt-2 px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <option value="">All Sources</option>
+                    {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
 

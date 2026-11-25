@@ -130,7 +130,14 @@ const FeesView: React.FC<FeesViewProps> = ({ leads, users, currentUser, onUpdate
             const matchesStatus = filters.statuses.length === 0 || filters.statuses.some(s => s.toLowerCase() === (lead.status || '').toLowerCase());
             const matchesAssigned = filters.assignedUsers.length === 0 || (lead.assignedto && filters.assignedUsers.includes(lead.assignedto));
             const matchesProgram = filters.programTypes.length === 0 || (lead.programType && filters.programTypes.some(p => p.toLowerCase() === lead.programType?.toLowerCase()));
-            const matchesSource = filters.sources.length === 0 || filters.sources.some(s => normalizeLeadSource(lead.leadfrom).toLowerCase() === normalizeLeadSource(s).toLowerCase() || (lead.leadfrom || '').toLowerCase().includes(s.toLowerCase()));
+            const matchesSource = filters.sources.length === 0 || filters.sources.some(s => {
+                const rawLeadSource = (lead.leadfrom || '').trim().toLowerCase();
+                const selLower = s.trim().toLowerCase();
+                if (selLower === 'metaads' || selLower === 'meta ads') {
+                    return rawLeadSource === selLower;
+                }
+                return normalizeLeadSource(lead.leadfrom).toLowerCase() === normalizeLeadSource(s).toLowerCase() || rawLeadSource.includes(selLower);
+            });
             const matchesProfession = filters.professions.length === 0 || (lead.profession && filters.professions.some(p => p.toLowerCase() === lead.profession?.toLowerCase()));
             const matchesPipeline = filters.pipelines.length === 0 || filters.pipelines.some(p => p.toLowerCase() === (lead.pipeline || '').toLowerCase());
 

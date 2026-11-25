@@ -35,7 +35,7 @@ export const COURSES = [
 ];
 const PROGRAM_TYPES = ["8 Hours", "2 Hours"];
 const PROFESSIONS = ["Job Seeker", "Student", "Working Professional"];
-const SOURCES = ["WhatsApp", "Meta Ads", "Google Ads", "Website", "Call", "Walk-in", "Referral", "Bulk Message"];
+export const SOURCES = ["WhatsApp", "Meta Ads", "metaads", "Google Ads", "Website", "Call", "Walk-in", "Referral", "Bulk Message"];
 const STATUSES = ["Hot", "Warm", "Cold"];
 const PIPELINES = ["New", "RNR", "Contacted", "Asked Time", "Not Interested", "Demo Scheduled", "Pre-Enrollment", "Enrolled", "Looking for job", "Irrelevant"];
 

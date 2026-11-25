@@ -807,9 +807,10 @@ export function expandSourceAliases(sources: string[]): string[] {
       result.add('WhatsApp');
       result.add('Whatsapp');
       result.add('whatsapp');
+    } else if (s.trim().toLowerCase() === 'metaads') {
+      result.add('metaads');
     } else if (norm === 'Meta Ads') {
       result.add('Meta Ads');
-      result.add('metaads');
       result.add('Meta ads');
       result.add('meta ads');
     } else if (norm === 'Walk-in') {

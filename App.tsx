@@ -155,6 +155,7 @@ const App: React.FC = () => {
   const [isCounselorOpen, setIsCounselorOpen] = useState(false);
   const [selectedDateRange, setSelectedDateRange] = useState("All Time");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isConnectedAppsOpen, setIsConnectedAppsOpen] = useState(true);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -1535,52 +1536,65 @@ const App: React.FC = () => {
             </button>
           )}
 
-          {/* Bulk WhatsApp */}
-          {!isHr && (
-            <button 
-              onClick={() => { setCurrentView('bulk-msg'); setIsMobileMenuOpen(false); }} 
-              title={isSidebarCollapsed ? 'Bulk WhatsApp' : undefined}
-              className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-xl transition-all font-medium text-[13.5px] ${
-                currentView === 'bulk-msg' 
-                  ? 'bg-[#f0fdf4] dark:bg-green-950/40 text-[#15803d] dark:text-green-300 font-bold' 
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-              } ${isSidebarCollapsed ? 'justify-center' : ''}`}
-            >
-              <Icons.WhatsApp className="w-5 h-5 flex-shrink-0 text-[#25D366] dark:text-green-400" />
-              {!isSidebarCollapsed && <span className="truncate">Bulk WhatsApp</span>}
-            </button>
-          )}
-
-          {/* WhatsApp Manager */}
+          {/* Connected Apps (WhatsApp Manager & Meta Ads Manager) */}
           {currentUser?.role === 'admin' && (
-            <button 
-              onClick={() => { setCurrentView('whatsapp-manager'); setIsMobileMenuOpen(false); }} 
-              title={isSidebarCollapsed ? 'WhatsApp Manager' : undefined}
-              className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-xl transition-all font-medium text-[13.5px] ${
-                currentView === 'whatsapp-manager' 
-                  ? 'bg-[#ecfdf5] dark:bg-emerald-950/40 text-[#047857] dark:text-emerald-300 font-bold' 
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-              } ${isSidebarCollapsed ? 'justify-center' : ''}`}
-            >
-              <Icons.WhatsApp className="w-5 h-5 flex-shrink-0 text-[#25D366]" />
-              {!isSidebarCollapsed && <span className="truncate">WhatsApp Manager</span>}
-            </button>
-          )}
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSidebarCollapsed) {
+                    setIsSidebarCollapsed(false);
+                    setIsConnectedAppsOpen(true);
+                  } else {
+                    setIsConnectedAppsOpen(prev => !prev);
+                  }
+                }}
+                title={isSidebarCollapsed ? 'Connected Apps' : undefined}
+                className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-xl transition-all font-medium text-[13.5px] ${
+                  isSidebarCollapsed && (currentView === 'whatsapp-manager' || currentView === 'ctwa-ads')
+                    ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+              >
+                <Icons.Layers className="w-5 h-5 flex-shrink-0 text-[#2563eb] dark:text-blue-400" />
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="truncate flex-1 text-left">Connected Apps</span>
+                    <Icons.ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isConnectedAppsOpen ? 'rotate-180' : ''}`} />
+                  </>
+                )}
+              </button>
 
-          {/* Meta Ads Manager */}
-          {currentUser?.role === 'admin' && (
-            <button 
-              onClick={() => { setCurrentView('ctwa-ads'); setIsMobileMenuOpen(false); }} 
-              title={isSidebarCollapsed ? 'Meta Ads Manager' : undefined}
-              className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-xl transition-all font-medium text-[13.5px] ${
-                currentView === 'ctwa-ads' 
-                  ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold' 
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-              } ${isSidebarCollapsed ? 'justify-center' : ''}`}
-            >
-              <Icons.Target className="w-5 h-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-              {!isSidebarCollapsed && <span className="truncate">Meta Ads Manager</span>}
-            </button>
+              {!isSidebarCollapsed && isConnectedAppsOpen && (
+                <div className="ml-5 pl-3 mt-1 space-y-1 border-l border-slate-200 dark:border-slate-700/80">
+                  {/* WhatsApp Manager */}
+                  <button
+                    onClick={() => { setCurrentView('whatsapp-manager'); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all font-medium text-[13px] ${
+                      currentView === 'whatsapp-manager'
+                        ? 'bg-slate-100 dark:bg-emerald-950/40 text-slate-900 dark:text-emerald-300 font-semibold'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <Icons.WhatsApp className="w-4 h-4 flex-shrink-0 text-[#25D366]" />
+                    <span className="truncate">WhatsApp Manager</span>
+                  </button>
+
+                  {/* Meta Ads Manager */}
+                  <button
+                    onClick={() => { setCurrentView('ctwa-ads'); setIsMobileMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all font-medium text-[13px] ${
+                      currentView === 'ctwa-ads'
+                        ? 'bg-slate-100 dark:bg-blue-950/40 text-slate-900 dark:text-blue-300 font-semibold'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <Icons.Meta className="w-[18px] h-[18px] flex-shrink-0" />
+                    <span className="truncate">Meta Ads Manager</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* What's New */}
